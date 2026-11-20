@@ -19,6 +19,7 @@
  */
 import initSqlJs, { Database } from 'sql.js';
 import { lireBase, ecrireBase, lireWasm, sauvegarderBase } from './storage';
+import { VOLET_COLONNES } from './voletsConfig/voletsConfig';
 
 export type Personne = {
   id: number;
@@ -653,52 +654,10 @@ export type Passage = {
   updatedAt: string;
 };
 
-export const VOLETS_COLONNES: Record<string, { cle: string; libelle: string; type: 'text' | 'select' | 'date' | 'textarea'; options?: string[]; editable?: boolean }[]> = {
-  education: [
-    { cle: 'date', libelle: 'Date', type: 'date' },
-    { cle: 'niveauScolaire', libelle: 'Niveau scolaire', type: 'select', options: ['', 'Aucun', 'Primaire', 'Collège', 'Lycée', 'Université'] },
-    { cle: 'classe', libelle: 'Classe / année', type: 'text' },
-    { cle: 'etablissement', libelle: 'Établissement', type: 'text' },
-    { cle: 'difficultes', libelle: 'Difficultés repérées', type: 'textarea' },
-    { cle: 'soutien', libelle: 'Soutien prévu', type: 'textarea' },
-    { cle: 'evolution', libelle: 'Évolution', type: 'select', options: ['', 'Amélioration', 'Stable', 'Dégradation'] },
-    { cle: 'prochaineEcheance', libelle: 'Prochaine échéance', type: 'date' },
-    { cle: 'remarques', libelle: 'Remarques', type: 'textarea' },
-    { cle: 'auteur', libelle: 'Saisi par', type: 'text', editable: false },
-  ],
-  sante: [
-    { cle: 'date', libelle: 'Date', type: 'date' },
-    { cle: 'type', libelle: 'Type', type: 'select', options: ['', 'Allergie', 'Traitement', 'Handicap', 'Maladie chronique', 'Consultation', 'Autre'] },
-    { cle: 'description', libelle: 'Description', type: 'textarea' },
-    { cle: 'traitement', libelle: 'Traitement en cours', type: 'textarea' },
-    { cle: 'suiviMedical', libelle: 'Suivi médical', type: 'text' },
-    { cle: 'partageFamille', libelle: 'Partage avec la famille', type: 'select', options: ['', 'Oui', 'Non'] },
-    { cle: 'prochaineEcheance', libelle: 'Prochaine échéance', type: 'date' },
-    { cle: 'remarques', libelle: 'Remarques', type: 'textarea' },
-    { cle: 'auteur', libelle: 'Saisi par', type: 'text', editable: false },
-  ],
-  social: [
-    { cle: 'date', libelle: 'Date', type: 'date' },
-    { cle: 'situationFamiliale', libelle: 'Situation familiale', type: 'textarea' },
-    { cle: 'logement', libelle: 'Logement', type: 'text' },
-    { cle: 'ressources', libelle: 'Ressources', type: 'textarea' },
-    { cle: 'soutienDisponible', libelle: 'Soutien disponible', type: 'textarea' },
-    { cle: 'obstacles', libelle: 'Obstacles repérés', type: 'textarea' },
-    { cle: 'evolution', libelle: 'Évolution', type: 'select', options: ['', 'Amélioration', 'Stable', 'Dégradation'] },
-    { cle: 'prochaineEcheance', libelle: 'Prochaine échéance', type: 'date' },
-    { cle: 'remarques', libelle: 'Remarques', type: 'textarea' },
-    { cle: 'auteur', libelle: 'Saisi par', type: 'text', editable: false },
-  ],
-  spiritualite: [
-    { cle: 'date', libelle: 'Date', type: 'date' },
-    { cle: 'appartenance', libelle: 'Appartenance / croyances', type: 'textarea' },
-    { cle: 'pratiques', libelle: 'Pratiques', type: 'textarea' },
-    { cle: 'ressources', libelle: 'Ressources spirituelles', type: 'textarea' },
-    { cle: 'consentement', libelle: 'Consentement à en parler', type: 'select', options: ['', 'Oui', 'Non'] },
-    { cle: 'remarques', libelle: 'Remarques', type: 'textarea' },
-    { cle: 'auteur', libelle: 'Saisi par', type: 'text', editable: false },
-  ],
-};
+// Alias conservé pour compatibilité : la configuration unique vit dans voletsConfig.
+// Les anciennes définitions locales (clés divergentes : classe/difficultes/soutien…)
+// sont supprimées pour éviter deux sources de vérité.
+export const VOLETS_COLONNES = VOLET_COLONNES;
 
 export async function listerPassages(personneId: number, voletType: string): Promise<Passage[]> {
   const base = await ouvrirBase();
@@ -745,8 +704,16 @@ export async function modifierPassage(id: string, champ: string, valeur: string,
   if (!texteId) throw new Error('modifierPassage : identifiant de passage invalide (vide)');
   const texteUtilisateur = validerTexteUtilisateur(utilisateur, 'modifierPassage');
   const texteValeur = valeur === null || valeur === undefined ? '' : String(valeur);
-  const champNormalise = String(champ ?? '').trim();
-  if (!champNormalise) throw new Error('modifierPassage : champ invalide (vide)');
+  const champSaisi = String(champ ?? '').trim();
+  if (!champSaisi) throw new Error('modifierPassage : champ invalide (vide)');
+  // La grille envoie les champs en camelCase, la confirmation de modification peut
+  // renvoyer la même clé : on accepte les deux écritures pour un même stockage.
+  const ALIAS_CHAMPS: Record<string, string> = {
+    date: 'date_passage',
+    datePassage: 'date_passage',
+    prochaineEcheance: 'prochaine_echeance',
+  };
+  const champNormalise = ALIAS_CHAMPS[champSaisi] ?? champSaisi;
 
   // Passage existant ?
   const res = base.exec(
