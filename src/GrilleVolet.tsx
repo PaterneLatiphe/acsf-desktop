@@ -33,6 +33,23 @@ function formaterDate(valeur: any): string {
   return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
 }
 
+// Aperçu d'une cellule : textarea tronqué sur la première ligne, tooltip complet
+function previewCell(col: any, params: any): string | HTMLElement {
+  const valeur = params?.value;
+  if (valeur === null || valeur === undefined || valeur === '') return '—';
+  if (col.type !== 'textarea') return String(valeur);
+  const texte = String(valeur);
+  const lignes = texte.split('\n');
+  const premier = lignes[0] || '';
+  const reste = lignes.length > 1 ? ' ⏎' : '';
+  const tronque = premier.length > 50 ? `${premier.slice(0, 50)}…` : premier;
+  const span = document.createElement('span');
+  span.textContent = `${tronque}${reste}`;
+  span.style.cssText = 'display:block;overflow:hidden;text-overflow:ellipsis;white-space:pre-line;color:var(--plume)';
+  span.title = texte.length > 120 ? `${texte.slice(0, 120)}…` : texte;
+  return span;
+}
+
 export const GrilleVolet: React.FC<GrilleVoletProps> = ({
   passages,
   colonnes,
@@ -40,7 +57,7 @@ export const GrilleVolet: React.FC<GrilleVoletProps> = ({
   onGridReady,
   onCellContextMenu,
 }) => {
-  // ColumnDefs générés depuis la configuration unique
+  // ColumnDefs générés depuis la configuration unique — largeurs flexibles (réparties)
   const columnDefs = useMemo(() => colonnes.map((col: any) => ({
     field: col.cle,
     headerName: col.libelle,
@@ -51,7 +68,8 @@ export const GrilleVolet: React.FC<GrilleVoletProps> = ({
     headerWordWrap: true,
     autoHeaderHeight: true,
     cellStyle: { alignItems: 'flex-start', paddingTop: '4px', paddingBottom: '4px' },
-    width: col.type === 'textarea' ? 220 : col.type === 'date' ? 130 : col.type === 'select' ? 180 : 140,
+    flex: col.type === 'textarea' ? 2.4 : col.type === 'select' ? 1.1 : col.type === 'date' ? 0.55 : 1,
+    minWidth: col.type === 'textarea' ? 220 : col.type === 'select' ? 170 : col.type === 'date' ? 110 : 100,
     cellEditor:
       col.type === 'select' ? 'agSelectCellEditor'
         : col.type === 'date' ? 'agDateStringCellEditor'
@@ -63,6 +81,7 @@ export const GrilleVolet: React.FC<GrilleVoletProps> = ({
         ? { maxLength: 2000, rows: 6, cols: 50 }
         : undefined,
     cellEditorPopup: col.type === 'textarea',
+    cellRenderer: (params: any) => previewCell(col, params),
     valueFormatter: (params: any) => {
       if (params.value === null || params.value === undefined || params.value === '') return '—';
       if (col.type === 'date') return formaterDate(params.value);
@@ -106,7 +125,7 @@ export const GrilleVolet: React.FC<GrilleVoletProps> = ({
       if (col.type !== 'textarea') continue;
       const texte = row[col.cle];
       if (texte === null || texte === undefined || texte === '') continue;
-      const largeur = 220;
+      const largeur = 240;
       const caracteresParLigne = Math.max(12, Math.floor(largeur / 7.2));
       const lignes = String(texte).split('\n').reduce(
         (total: number, ligne: string) => total + Math.max(1, Math.ceil(ligne.length / caracteresParLigne)),

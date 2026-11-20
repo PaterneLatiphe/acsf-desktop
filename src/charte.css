@@ -432,3 +432,70 @@ h1.page{color:var(--nuit);font-size:var(--titre-page);font-weight:800;letter-spa
   .side .pied,.side a span,.side .navbtn span,.menu-toggle span{display:none}
   .side a,.side .navbtn,.menu-toggle{justify-content:center;padding-left:0;padding-right:0}
 }
+
+/* ========== Barre d'action (toolbar du dossier) ========== */
+.barre-actions{
+  display:flex;align-items:center;gap:var(--sp-3);flex-shrink:0;flex-wrap:wrap;
+  border-bottom:1px solid var(--ligne);
+}
+.barre-actions > span{font-size:.75rem;color:var(--gris);font-weight:600}
+.barre-actions .actions{display:flex;gap:var(--sp-2);align-items:center;flex-wrap:wrap}
+.barre-actions .btn{min-height:36px;padding:6px 12px;font-size:.8rem}
+
+/* ========== Filtres et recherche de la Synthèse ========== */
+.synthese-filtres{display:flex;gap:var(--sp-3);align-items:flex-end;flex-wrap:wrap;margin-bottom:0}
+.filtre-volet{
+  display:flex;align-items:center;gap:8px;font-size:.78rem;font-weight:600;color:var(--gris-clair);
+  background:var(--feuille);border:1px solid var(--ligne);border-radius:var(--r-md);
+  padding:7px 10px;
+}
+.filtre-volet select{
+  height:24px;min-width:180px;border:none;background:transparent;color:var(--plume);
+  font-family:var(--font);font-size:.85rem;outline:none;
+}
+.filtre-volet select:focus-visible{outline:3px solid rgba(21,10,84,.15);outline-offset:1px}
+.recherche-synth{
+  display:flex;align-items:center;gap:8px;min-width:280px;max-width:380px;
+  background:var(--feuille);border:1px solid var(--ligne);border-radius:var(--r-md);padding:4px 8px;
+}
+.recherche-synth input{
+  flex:1;height:30px;border:none;background:transparent;outline:none;color:var(--plume);
+  font-family:var(--font);font-size:.85rem;padding:0 6px;
+}
+.recherche-synth input::placeholder{color:var(--gris)}
+.recherche-synth input:focus-visible{outline:3px solid rgba(21,10,84,.15);outline-offset:1px}
+.recherche-synth .btn{min-height:28px;padding:4px 10px;font-size:.74rem;font-weight:600}
+
+/* ========== Listes de la Synthèse : évolutions + passages récents ========== */
+.evolutions{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.evo-tete{display:flex;align-items:center;gap:10px;font-size:.82rem;flex-wrap:wrap}
+.evo-tete b{color:var(--nuit);font-weight:700}
+.evo-tete span{color:var(--gris);font-size:.74rem;flex:0 0 auto}
+.evo-detail{color:var(--gris);font-size:.8rem;margin-top:2px;overflow-wrap:anywhere}
+.passages-recents{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.passages-recents li{display:flex;flex-direction:column;gap:2px}
+.passages-recents li b{font-size:.82rem;color:var(--nuit);white-space:nowrap}
+.passages-recents li span{color:var(--gris);font-size:.74rem}
+.passage-resume{color:var(--gris);font-size:.82rem;overflow-wrap:anywhere}
+
+/* ========== Dialog simple (confirmations) ========== */
+.dialog-overlay{
+  position:fixed;inset:0;background:rgba(21,10,84,.35);
+  display:flex;align-items:center;justify-content:center;padding:var(--sp-5);z-index:60;
+}
+.dialog-modal{
+  background:var(--feuille);border-radius:var(--r-lg);box-shadow:var(--ombre-3);
+  max-width:520px;width:calc(100% - var(--sp-5));padding:var(--sp-5);
+}
+.dialog-modal b{display:block;color:var(--nuit);font-size:1.02rem;margin-bottom:8px}
+.dialog-modal p{color:var(--gris);font-size:.86rem;margin:0 0 var(--sp-4);line-height:1.5}
+.dialog-actions{display:flex;justify-content:flex-end;gap:var(--sp-3)}
+
+/* Responsive : toolbar + filtres de la Synthèse sur écrans étroits */
+@media (max-width:900px){
+  .barre-actions .actions{width:100%}
+  .synthese-filtres{gap:var(--sp-2)}
+  .recherche-synth{min-width:0;width:100%}
+  .evolutions{gap:6px}
+  .evo-tete{font-size:.78rem}
+}

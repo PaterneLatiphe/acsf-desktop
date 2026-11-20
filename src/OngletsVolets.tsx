@@ -1,8 +1,9 @@
 // Onglets en bas de la grille - style feuilles Excel
 // Rôle : affichage des boutons-onglets pour naviguer entre les volets
+// Accessibilité : role=tab, roving tabindex, navigation clavier (flèches, Début/Fin)
 // Positionné en bas via flex order, toujours visible
 
-import React from 'react';
+import React, { useRef } from 'react';
 import {
   LayoutDashboard,
   BookOpen,
@@ -40,11 +41,38 @@ export const VOLETS: { cle: CleVolet; libelle: string }[] = [
 
 export interface OngletsVoletsProps {
   voletActif: string;
-  setVoletActif: (volet: string) => void;
+  onChangerVolet: (volet: CleVolet) => void;
   passages: any[];
 }
 
-export const OngletsVolets: React.FC<OngletsVoletsProps> = ({ voletActif, setVoletActif, passages }) => {
+const TOUCHES_DEPLACEMENT: string[] = ['ArrowLeft', 'ArrowRight', 'Home', 'End'];
+
+export const OngletsVolets: React.FC<OngletsVoletsProps> = ({ voletActif, onChangerVolet, passages }) => {
+  const boutons = useRef<Record<string, HTMLButtonElement | null>>({});
+
+  const focusVolet = (cle: string) => {
+    window.setTimeout(() => boutons.current[cle]?.focus());
+  };
+
+  const onKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (!TOUCHES_DEPLACEMENT.includes(e.key)) return;
+    e.preventDefault();
+    const idx = VOLETS.findIndex((v) => v.cle === voletActif);
+    const total = VOLETS.length;
+    let suivant: CleVolet;
+    if (e.key === 'ArrowRight') {
+      suivant = VOLETS[(idx + 1) % total].cle;
+    } else if (e.key === 'ArrowLeft') {
+      suivant = VOLETS[(idx - 1 + total) % total].cle;
+    } else if (e.key === 'Home') {
+      suivant = VOLETS[0].cle;
+    } else {
+      suivant = VOLETS[total - 1].cle;
+    }
+    onChangerVolet(suivant);
+    focusVolet(suivant);
+  };
+
   return (
     <div className="volet-tabs-bottom" role="tablist" aria-label="Volets du dossier">
       {VOLETS.map((v) => {
@@ -55,14 +83,17 @@ export const OngletsVolets: React.FC<OngletsVoletsProps> = ({ voletActif, setVol
           <button
             key={v.cle}
             type="button"
+            ref={(b) => { boutons.current[v.cle] = b; }}
             role="tab"
             aria-selected={voletActif === v.cle}
+            tabIndex={voletActif === v.cle ? 0 : -1}
             className={`volet-tab-bottom${voletActif === v.cle ? ' actif' : ''}`}
-            onClick={() => setVoletActif(v.cle)}
+            onClick={() => onChangerVolet(v.cle)}
+            onKeyDown={onKeyDown}
           >
             {ICONES[v.cle]}
             <span>{v.libelle}</span>
-            {badge !== '' && badge > 0 && <span className="volet-tab-badge">{badge}</span>}
+            {badge !== '' && badge > 0 && <span className="volet-tab-badge" aria-label={`${badge} passage(s)`}>{badge}</span>}
           </button>
         );
       })}

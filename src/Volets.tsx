@@ -3,7 +3,7 @@
 // Zéro dépendance payante
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Download, Plus, Lock, Check } from 'lucide-react';
+import { Download, Plus, Lock, Check, RefreshCw, X } from 'lucide-react';
 
 import { VOLET_COLONNES } from './voletsConfig/voletsConfig';
 import { OngletsVolets } from './OngletsVolets';
@@ -46,6 +46,16 @@ type VoletsProps = {
 
 type Statut = 'idle' | 'saving' | 'saved' | 'error';
 
+type DernierChangement = { id: string; champ: string; valeur: string };
+type DialogConfirm = {
+  titre: string;
+  message: string;
+  action: string;
+  onAction: () => void;
+  onAnnuler?: () => void;
+};
+type EvolutionRecent = { cle: string; date: string; label: string; detail: string };
+
 function normaliserValeur(valeur: any): string {
   if (valeur === null || valeur === undefined) return '';
   if (valeur instanceof Date) {
@@ -61,6 +71,28 @@ function formaterDate(valeur?: string | null): string {
   return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
 }
 
+function valeurDe(passage: Passage, champ: string): string {
+  if (!passage) return '';
+  if (champ === 'prochaineEcheance') return passage.prochaineEcheance ?? '';
+  if (champ === 'remarques') return passage.remarques ?? '';
+  return passage.donnees?.[champ] ?? '';
+}
+
+function labelDe(voletCle: string, champ: string): string {
+  const colonnes = (VOLET_COLONNES as any)[voletCle]?.colonnes || [];
+  const colonne = colonnes.find((c: any) => c.cle === champ);
+  return colonne?.libelle || champ;
+}
+
+function resumePassage(p: Passage): string {
+  const valeurs = Object.entries(p.donnees || {})
+    .filter(([, v]) => v !== null && v !== undefined && String(v).trim() !== '')
+    .slice(0, 2)
+    .map(([k, v]) => `${labelDe(p.voletType, k)} : ${v}`);
+  if (p.prochaineEcheance) valeurs.push(`Échéance ${formaterDate(p.prochaineEcheance)}`);
+  return valeurs.length ? valeurs.join(' · ') : '(sans note)';
+}
+
 const Volets: React.FC<VoletsProps> = ({ personneId, utilisateur, personne, onChanger }) => {
   const [voletActif, setVoletActif] = useState('synthese');
   const [passagesParVolet, setPassagesParVolet] = useState<Record<string, Passage[]>>({});
@@ -69,6 +101,11 @@ const Volets: React.FC<VoletsProps> = ({ personneId, utilisateur, personne, onCh
   const [statut, setStatut] = useState<Statut>('idle');
   const [toast, setToast] = useState<string | null>(null);
   const [menu, setMenu] = useState<{ x: number; y: number; id: string } | null>(null);
+  const [dialog, setDialog] = useState<DialogConfirm | null>(null);
+  const [filtreSynthese, setFiltreSynthese] = useState('tous');
+  const [recherche, setRecherche] = useState('');
+  const [dernierChangement, setDernierChangement] = useState<DernierChangement | null>(null);
+  const [nouvellesModifications, setNouvellesModifications] = useState(0);
   const gridApiRef = useRef<any>(null);
 
   const afficherToast = useCallback((message: string) => {
@@ -100,6 +137,69 @@ const Volets: React.FC<VoletsProps> = ({ personneId, utilisateur, personne, onCh
     charger().catch(() => setStatut('error'));
   }, [charger]);
 
+  // Ré-enregistrement de la dernière modification (confirmation avant changement de volet)
+  const enregistrerDerniereModification = useCallback(async () => {
+    if (!dernierChangement) return;
+    signaler('saving');
+    try {
+      await modifierPassage(dernierChangement.id, dernierChangement.champ, dernierChangement.valeur, utilisateur);
+      setNouvellesModifications(0);
+      signaler('saved');
+    } catch {
+      signaler('error');
+      afficherToast('Échec de l’enregistrement');
+    }
+  }, [dernierChangement, utilisateur, signaler, afficherToast]);
+
+  const chargerSaufStatut = useCallback(async () => {
+    signaler('saving');
+    try {
+      await charger();
+      signaler('saved');
+      afficherToast('Données rafraîchies');
+    } catch {
+      signaler('error');
+      afficherToast('Échec du chargement');
+    }
+  }, [charger, signaler, afficherToast]);
+
+  // Changer de volet — confirmation avant d’enregistrer la dernière modification
+  const confirmerChangement = useCallback((suivant: string) => {
+    if (nouvellesModifications > 0) {
+      setDialog({
+        titre: 'Modifications en attente',
+        message: `Des modifications ont été saisies. Voulez-vous enregistrer la dernière modification avant de passer au volet ${LIBELLES[suivant] ?? suivant} ?`,
+        action: 'Enregistrer',
+        onAction: async () => {
+          setDialog(null);
+          await enregistrerDerniereModification();
+          setVoletActif(suivant);
+        },
+        onAnnuler: () => setVoletActif(suivant),
+      });
+      return;
+    }
+    setVoletActif(suivant);
+  }, [nouvellesModifications, enregistrerDerniereModification]);
+
+  const actualiser = useCallback(async () => {
+    if (nouvellesModifications > 0) {
+      setDialog({
+        titre: 'Modifications en attente',
+        message: 'Des modifications ont été saisies. Voulez-vous enregistrer la dernière modification avant de rafraîchir ?',
+        action: 'Enregistrer',
+        onAction: async () => {
+          setDialog(null);
+          await enregistrerDerniereModification();
+          await chargerSaufStatut();
+        },
+        onAnnuler: () => void chargerSaufStatut(),
+      });
+      return;
+    }
+    await chargerSaufStatut();
+  }, [nouvellesModifications, enregistrerDerniereModification, chargerSaufStatut]);
+
   // Fermer le menu contextuel au clic ailleurs
   useEffect(() => {
     if (!menu) return undefined;
@@ -116,6 +216,50 @@ const Volets: React.FC<VoletsProps> = ({ personneId, utilisateur, personne, onCh
     () => VOLETS_SAISIE.flatMap((cle) => passagesParVolet[cle] || []),
     [passagesParVolet]
   );
+
+  const evolutionsRecentes = useMemo((): EvolutionRecent[] => {
+    const liste: EvolutionRecent[] = [];
+    for (const cle of VOLETS_SYNTHESE) {
+      const passages = (passagesParVolet[cle] || []).slice().sort((a, b) => b.datePassage.localeCompare(a.datePassage));
+      const top = passages[0];
+      if (top) {
+        const valeurs = Object.entries(top.donnees || {})
+          .filter(([, v]) => v !== null && v !== undefined && String(v).trim() !== '')
+          .slice(0, 2)
+          .map(([k, v]) => `${labelDe(cle, k)} : ${v}`);
+        if (top.prochaineEcheance) valeurs.push(`Échéance ${formaterDate(top.prochaineEcheance)}`);
+        liste.push({ cle, date: top.datePassage, label: `Nouveau passage ${LIBELLES[cle]}`, detail: valeurs.join(' · ') || '(sans note)' });
+      }
+      for (let i = 1; i < Math.min(passages.length, 3); i++) {
+        if (!top) continue;
+        const champs = [...new Set([...Object.keys(top.donnees || {}), ...Object.keys(passages[i].donnees || {}), 'remarques', 'prochaineEcheance'])];
+        for (const champ of champs) {
+          const nouveau = valeurDe(top, champ);
+          const ancien = valeurDe(passages[i], champ);
+          if (String(nouveau ?? '') === String(ancien ?? '')) continue;
+          liste.push({
+            cle,
+            date: top.datePassage,
+            label: `${labelDe(cle, champ)} — ${LIBELLES[cle]}`,
+            detail: `${ancien ? `« ${ancien} »` : '(vide)'} → ${nouveau ? `« ${nouveau} »` : '(vide)'}`,
+          });
+        }
+      }
+    }
+    return liste.sort((a, b) => b.date.localeCompare(a.date)).slice(0, 8);
+  }, [passagesParVolet]);
+
+  const passagesRecents = useMemo(() => {
+    const filtre = recherche.trim().toLowerCase();
+    return tousPassages
+      .filter((p) => filtreSynthese === 'tous' || p.voletType === filtreSynthese)
+      .filter((p) => {
+        if (!filtre) return true;
+        return `${LIBELLES[p.voletType] ?? p.voletType} ${p.auteur} ${resumePassage(p)}`.toLowerCase().includes(filtre);
+      })
+      .sort((a, b) => b.datePassage.localeCompare(a.datePassage))
+      .slice(0, 10);
+  }, [tousPassages, filtreSynthese, recherche]);
 
   const passagesDuVolet = passagesParVolet[voletActif] || [];
   const colonnesVolet = (VOLET_COLONNES as any)[voletActif]?.colonnes || [];
@@ -157,6 +301,8 @@ const Volets: React.FC<VoletsProps> = ({ personneId, utilisateur, personne, onCh
         await modifierPassage(row._id, field, valeur, utilisateur);
       }
       appliquerMajLocale(row._id, field, valeur);
+      setDernierChangement({ id: row._id, champ: field, valeur });
+      setNouvellesModifications((n) => n + 1);
       signaler('saved');
     } catch {
       signaler('error');
@@ -193,25 +339,31 @@ const Volets: React.FC<VoletsProps> = ({ personneId, utilisateur, personne, onCh
     }
   }, [peutAjouter, personneId, voletActif, utilisateur, afficherToast, signaler, onChanger, colonnesVolet]);
 
-  // Suppression d'une ligne via clic droit
-  const supprimerLigne = useCallback(async (id: string) => {
+  // Suppression d'une ligne via clic droit (confirmation in-app)
+  const supprimerLigne = useCallback((id: string) => {
     setMenu(null);
-    const confirme = window.confirm('Supprimer ce passage ? Cette suppression est tracée dans l’historique.');
-    if (!confirme) return;
-    signaler('saving');
-    try {
-      await supprimerPassage(id, utilisateur);
-      setPassagesParVolet((precedent) => ({
-        ...precedent,
-        [voletActif]: (precedent[voletActif] || []).filter((p) => p.id !== id),
-      }));
-      signaler('saved');
-      afficherToast('Passage supprimé');
-      onChanger?.();
-    } catch {
-      signaler('error');
-      afficherToast('Suppression impossible');
-    }
+    setDialog({
+      titre: 'Supprimer ce passage ?',
+      message: 'Cette suppression est tracée dans l’historique.',
+      action: 'Supprimer',
+      onAction: async () => {
+        setDialog(null);
+        signaler('saving');
+        try {
+          await supprimerPassage(id, utilisateur);
+          setPassagesParVolet((precedent) => ({
+            ...precedent,
+            [voletActif]: (precedent[voletActif] || []).filter((p) => p.id !== id),
+          }));
+          signaler('saved');
+          afficherToast('Passage supprimé');
+          onChanger?.();
+        } catch {
+          signaler('error');
+          afficherToast('Suppression impossible');
+        }
+      },
+    });
   }, [utilisateur, voletActif, signaler, afficherToast, onChanger]);
 
   const onCellContextMenu = useCallback((event: any) => {
@@ -235,75 +387,6 @@ const Volets: React.FC<VoletsProps> = ({ personneId, utilisateur, personne, onCh
     }
   }, [personneId, utilisateur, signaler, afficherToast]);
 
-  const exporter = useCallback(() => {
-    exporterExcel(personneId, voletActif, {
-      nom: personne?.nom || '',
-      prenom: personne?.prenom || '',
-      dateNaissance: personne?.dateNaissance,
-      telephone: personne?.telephone,
-      code: personne?.code,
-      passages: tousPassages,
-    });
-    afficherToast('Export Excel généré');
-  }, [personneId, voletActif, personne, tousPassages, afficherToast]);
-
-  const libelleStatut =
-    statut === 'saving' ? 'Enregistrement…'
-      : statut === 'saved' ? 'Enregistré'
-        : statut === 'error' ? 'Erreur d’enregistrement'
-          : 'Base locale';
-
-  // ---------- Vues ----------
-  const vueSynthese = (
-    <div style={{ padding: 'var(--sp-4)', overflow: 'auto', height: '100%' }}>
-      <div className="kpis" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
-        {VOLETS_SYNTHESE.map((cle) => {
-          const liste = passagesParVolet[cle] || [];
-          const dernier = liste[0];
-          const verrouille = cle === 'spiritualite' && !consentementSpirituel;
-          return (
-            <button
-              key={cle}
-              type="button"
-              className="kpi kpi-btn"
-              style={{ cursor: 'pointer', textAlign: 'left' }}
-              onClick={() => setVoletActif(cle)}
-            >
-              <span className="kpi-label">{LIBELLES[cle]}</span>
-              <span className="kpi-chiffre">{verrouille ? '—' : liste.length}</span>
-              <span className="kpi-var">
-                {verrouille ? 'Consentement requis' : dernier ? `Dernier : ${formaterDate(dernier.datePassage)}` : 'Aucun passage'}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="bloc">
-        <div className="bloc-titre">Carnet de suivi</div>
-        <p style={{ color: 'var(--gris)', fontSize: '.85rem', margin: 0 }}>
-          {tousPassages.length === 0
-            ? 'Aucun passage enregistré. Choisissez un volet puis cliquez sur « Nouveau passage ».'
-            : `${tousPassages.length} passage(s) au total dans le carnet. Le passage le plus récent date du ${formaterDate(tousPassages[0]?.datePassage)}.`}
-        </p>
-      </div>
-    </div>
-  );
-
-  const vueSpiritualiteVerrouillee = (
-    <div className="vide" style={{ margin: 'var(--sp-4)' }}>
-      <Lock size={32} />
-      <b>Volet verrouillé</b>
-      <p style={{ maxWidth: 520, margin: '0 auto var(--sp-3)' }}>
-        Le volet Spiritualité ne peut être rempli qu’avec le consentement explicite de la personne
-        (ou de son responsable légal). Aucune donnée spirituelle n’est accessible sans cet accord.
-      </p>
-      <button type="button" className="btn btn-principal" onClick={donnerConsentement}>
-        <Check size={18} /> La personne a donné son consentement
-      </button>
-    </div>
-  );
-
   const evenements = useMemo(() => {
     const depuisEchanges = echanges.map((e) => ({
       cle: `e-${e.id}`,
@@ -326,6 +409,140 @@ const Volets: React.FC<VoletsProps> = ({ personneId, utilisateur, personne, onCh
       .sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')))
       .slice(0, 200);
   }, [echanges, tousPassages]);
+
+  const exporter = useCallback(() => {
+    exporterExcel(personneId, voletActif, {
+      nom: personne?.nom || '',
+      prenom: personne?.prenom || '',
+      dateNaissance: personne?.dateNaissance,
+      telephone: personne?.telephone,
+      code: personne?.code,
+      passages: tousPassages,
+      evenements,
+    });
+    afficherToast('Export Excel généré');
+  }, [personneId, voletActif, personne, tousPassages, evenements, afficherToast]);
+
+  const libelleStatut =
+    statut === 'saving' ? 'Enregistrement…'
+      : statut === 'saved' ? 'Enregistré'
+        : statut === 'error' ? 'Erreur d’enregistrement'
+          : 'Base locale';
+
+  // ---------- Vues ----------
+  const filtreLabel = filtreSynthese === 'tous' ? '' : ` — ${LIBELLES[filtreSynthese] ?? filtreSynthese}`;
+  const evolutionsVolets = evolutionsRecentes.filter((e) => filtreSynthese === 'tous' || e.cle === filtreSynthese);
+
+  const vueSynthese = (
+    <div style={{ padding: 'var(--sp-4)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-4)', overflow: 'auto', height: '100%' }}>
+      <div className="bloc">
+        <div className="bloc-titre">Panorama du suivi</div>
+        <div className="kpis" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+          {VOLETS_SYNTHESE.map((cle) => {
+            const liste = passagesParVolet[cle] || [];
+            const dernier = liste[0];
+            const verrouille = cle === 'spiritualite' && !consentementSpirituel;
+            return (
+              <button
+                key={cle}
+                type="button"
+                className="kpi kpi-btn"
+                style={{ cursor: 'pointer', textAlign: 'left' }}
+                onClick={() => confirmerChangement(cle)}
+              >
+                <span className="kpi-label">{LIBELLES[cle]}</span>
+                <span className="kpi-chiffre">{verrouille ? '—' : liste.length}</span>
+                <span className="kpi-var">
+                  {verrouille ? 'Consentement requis' : dernier ? `Dernier : ${formaterDate(dernier.datePassage)}` : 'Aucun passage'}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="synthese-filtres">
+        <label className="filtre-volet">
+          <span>Filtre par volet :</span>
+          <select
+            value={filtreSynthese}
+            onChange={(e) => setFiltreSynthese(e.target.value)}
+            aria-label="Filtrer les passages par volet"
+          >
+            <option value="tous">Tous les volets</option>
+            {VOLETS_SAISIE.map((cle) => (
+              <option key={cle} value={cle}>{LIBELLES[cle]}</option>
+            ))}
+          </select>
+        </label>
+        <label className="recherche-synth" role="search">
+          <input
+            type="search"
+            value={recherche}
+            onChange={(e) => setRecherche(e.target.value)}
+            placeholder="Rechercher dans le carnet…"
+            aria-label="Rechercher dans le carnet de suivi"
+          />
+          <button type="button" className="btn btn-secondaire" onClick={() => setRecherche('')} disabled={recherche.trim() === ''}>
+            <X size={14} /> Vider la recherche
+          </button>
+        </label>
+      </div>
+
+      <div className="bloc">
+        <div className="bloc-titre">Évolutions récentes</div>
+        {evolutionsVolets.length === 0 ? (
+          <p style={{ color: 'var(--gris)', fontSize: '.85rem', margin: 0 }}>Aucune évolution à signaler pour le moment.</p>
+        ) : (
+          <ul className="evolutions">
+            {evolutionsVolets.map((e) => (
+              <li key={`${e.cle}|${e.date}|${e.label}`}>
+                <div className="evo-tete">
+                  <b>{e.label}</b>
+                  <span>{formaterDate(e.date)} · {LIBELLES[e.cle] ?? e.cle}</span>
+                </div>
+                <div className="evo-detail">{e.detail}</div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      <div className="bloc">
+        <div className="bloc-titre">Passages récents{filtreLabel}</div>
+        {passagesRecents.length === 0 ? (
+          <p style={{ color: 'var(--gris)', fontSize: '.85rem', margin: 0 }}>Aucun passage correspondant.</p>
+        ) : (
+          <ul className="passages-recents">
+            {passagesRecents.map((p) => (
+              <li key={p.id}>
+                <div>
+                  <b>{LIBELLES[p.voletType] ?? p.voletType}</b>
+                  <span> — {formaterDate(p.datePassage)}</span>
+                  {p.auteur && <span> · {p.auteur}</span>}
+                </div>
+                <div className="passage-resume">{resumePassage(p)}</div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+
+  const vueSpiritualiteVerrouillee = (
+    <div className="vide" style={{ margin: 'var(--sp-4)' }}>
+      <Lock size={32} />
+      <b>Volet verrouillé</b>
+      <p style={{ maxWidth: 520, margin: '0 auto var(--sp-3)' }}>
+        Le volet Spiritualité ne peut être rempli qu’avec le consentement explicite de la personne
+        (ou de son responsable légal). Aucune donnée spirituelle n’est accessible sans cet accord.
+      </p>
+      <button type="button" className="btn btn-principal" onClick={donnerConsentement}>
+        <Check size={18} /> La personne a donné son consentement
+      </button>
+    </div>
+  );
 
   const vueHistorique = (
     <div style={{ padding: 'var(--sp-4)', overflow: 'auto', height: '100%' }}>
@@ -357,38 +574,19 @@ const Volets: React.FC<VoletsProps> = ({ personneId, utilisateur, personne, onCh
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
       <BandeauIdentite personne={personne} />
 
-      {/* Barre d'action au-dessus de la grille */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 'var(--sp-3)',
-          padding: '6px var(--sp-3)',
-          borderBottom: '1px solid var(--ligne)',
-          flexShrink: 0,
-          flexWrap: 'wrap',
-        }}
-      >
-        <span style={{ fontSize: '.75rem', color: 'var(--gris)' }}>
-          {LIBELLES[voletActif]} — {libelleStatut}
-        </span>
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: 'var(--sp-2)' }}>
+      {/* Barre d'action */}
+      <div className="barre-actions">
+        <span>{LIBELLES[voletActif]} — {libelleStatut}</span>
+        <div className="actions">
           {peutAjouter && (
-            <button
-              type="button"
-              className="btn btn-secondaire"
-              style={{ minHeight: 36, padding: '6px 12px', fontSize: '.8rem' }}
-              onClick={ajouterPassage}
-            >
+            <button type="button" className="btn btn-secondaire" onClick={ajouterPassage}>
               <Plus size={16} /> Nouveau passage
             </button>
           )}
-          <button
-            type="button"
-            className="btn btn-principal"
-            style={{ minHeight: 36, padding: '6px 12px', fontSize: '.8rem' }}
-            onClick={exporter}
-          >
+          <button type="button" className="btn btn-secondaire" onClick={actualiser} title="Rafraîchir les données du dossier">
+            <RefreshCw size={16} /> Actualiser
+          </button>
+          <button type="button" className="btn btn-principal" onClick={exporter}>
             <Download size={16} /> Excel
           </button>
         </div>
@@ -412,7 +610,7 @@ const Volets: React.FC<VoletsProps> = ({ personneId, utilisateur, personne, onCh
 
       <OngletsVolets
         voletActif={voletActif}
-        setVoletActif={setVoletActif}
+        onChangerVolet={confirmerChangement}
         passages={tousPassages}
       />
 
@@ -438,6 +636,21 @@ const Volets: React.FC<VoletsProps> = ({ personneId, utilisateur, personne, onCh
           >
             Supprimer cette ligne
           </button>
+        </div>
+      )}
+
+      {dialog && (
+        <div className="dialog-overlay" role="dialog" aria-modal="true" aria-label={dialog.titre}>
+          <div className="dialog-modal">
+            <b>{dialog.titre}</b>
+            <p>{dialog.message}</p>
+            <div className="dialog-actions">
+              {dialog.onAnnuler && (
+                <button type="button" className="btn btn-secondaire" onClick={dialog.onAnnuler}>Annuler</button>
+              )}
+              <button type="button" className="btn btn-principal" onClick={dialog.onAction}>{dialog.action}</button>
+            </div>
+          </div>
         </div>
       )}
 
