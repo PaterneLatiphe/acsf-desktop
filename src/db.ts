@@ -702,96 +702,131 @@ export const VOLETS_COLONNES: Record<string, { cle: string; libelle: string; typ
 
 export async function listerPassages(personneId: number, voletType: string): Promise<Passage[]> {
   const base = await ouvrirBase();
-  const resultat = base.exec('SELECT * FROM passages WHERE personne_id = ? AND volet_type = ? ORDER BY date_passage DESC, created_at DESC', [personneId, voletType]);
+  const idPersonne = validerIdPersonne(personneId, 'listerPassages');
+  const texteType = String(voletType ?? '').trim();
+  if (!VOLETS_VALIDES.includes(texteType)) {
+    throw new Error(`listerPassages : type de volet invalide (${voletType})`);
+  }
+  const resultat = base.exec('SELECT * FROM passages WHERE personne_id = ? AND volet_type = ? ORDER BY date_passage DESC, created_at DESC', [idPersonne, texteType]);
   if (!resultat.length) return [];
-  const colonnes = resultat[0].columns;
-  return resultat[0].values.map((ligne) => {
-    const obj: Record<string, unknown> = {};
-    colonnes.forEach((c, i) => {
-      const camel = c.replace(/_([a-z])/g, (_, ch: string) => ch.toUpperCase());
-      obj[camel] = ligne[i];
-    });
-    const p = obj as unknown as Passage;
-    let donnees: Record<string, string> = {};
-    try { if (p.donneesJson) donnees = JSON.parse(p.donneesJson) as Record<string, string>; } catch { /* ignore */ }
-    return { ...p, personneId: Number(p.personneId), donnees, prochaineEcheance: p.prochaineEcheance ?? null };
-  });
+  return resultat[0].values.map((ligne) => passageDeLigne(resultat[0].columns, ligne));
 }
 
 export async function creerPassage(personneId: number, voletType: string, auteur: string): Promise<Passage> {
   const base = await ouvrirBase();
+  const idPersonne = validerIdPersonne(personneId, 'creerPassage');
+  const texteType = String(voletType ?? '').trim();
+  if (!VOLETS_VALIDES.includes(texteType)) {
+    throw new Error(`creerPassage : type de volet invalide (${voletType})`);
+  }
+  const existe = base.exec('SELECT id FROM personnes WHERE id = ?', [idPersonne]);
+  if (!existe.length || !existe[0].values.length) {
+    throw new Error(`creerPassage : personne introuvable (id=${idPersonne})`);
+  }
+  const texteAuteur = validerTexteNonVide(auteur, 'auteur', 'creerPassage');
   const maintenant = new Date().toISOString();
+  const aujourdhui = validerEtNormaliserDate(maintenant, 'date_passage', false) ?? '';
   const id = crypto.randomUUID();
-  const aujourdhui = maintenant.slice(0, 10);
   base.run('INSERT INTO passages (id, personne_id, volet_type, date_passage, auteur, donnees_json, remarques, prochaine_echeance, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-    [id, personneId, voletType, aujourdhui, auteur, '{}', '', null, maintenant, maintenant]);
+    [id, idPersonne, texteType, aujourdhui, texteAuteur, '{}', '', null, maintenant, maintenant]);
+  const nouveau = base.exec('SELECT * FROM passages WHERE id = ?', [id]);
+  if (!nouveau.length || !nouveau[0].values.length) {
+    throw new Error(`creerPassage : passage introuvable après création (id=${id})`);
+  }
+  const passage = passageDeLigne(nouveau[0].columns, nouveau[0].values[0]);
   await persister();
-  const toutes = await listerPassages(personneId, voletType);
-  return toutes.find((p) => p.id === id) ?? toutes[0];
+  return passage;
 }
 
 export async function modifierPassage(id: string, champ: string, valeur: string, utilisateur: string): Promise<void> {
   const base = await ouvrirBase();
   const maintenant = new Date().toISOString();
-  // lire l'ancienne valeur pour l'audit
-  const res = base.exec('SELECT personne_id, donnees_json, remarques, prochaine_echeance, date_passage, auteur FROM passages WHERE id = ?', [id]);
-  let ancien: Record<string, unknown> = {};
-  let passage: { personneId: number; donneesJson: string; remarques: string; prochaineEcheance: string | null; datePassage: string; auteur: string } | null = null;
-  if (res.length && res[0].values.length) {
-    const cols = res[0].columns;
-    const vals = res[0].values[0];
-    const obj: Record<string, unknown> = {};
-    cols.forEach((c, i) => { const camel = c.replace(/_([a-z])/g, (_, ch: string) => ch.toUpperCase()); obj[camel] = vals[i]; });
-    passage = obj as unknown as { personneId: number; donneesJson: string; remarques: string; prochaineEcheance: string | null; datePassage: string; auteur: string };
-    try { if (passage.donneesJson) ancien = JSON.parse(passage.donneesJson) as Record<string, unknown>; } catch { /* ignore */ }
-    if (champ === 'remarques') ancien.remarques = passage.remarques;
-    if (champ === 'date_passage') ancien.date = passage.datePassage;
-    if (champ === 'prochaine_echeance') ancien.prochaineEcheance = passage.prochaineEcheance;
+  const texteId = String(id ?? '').trim();
+  if (!texteId) throw new Error('modifierPassage : identifiant de passage invalide (vide)');
+  const texteUtilisateur = validerTexteUtilisateur(utilisateur, 'modifierPassage');
+  const texteValeur = valeur === null || valeur === undefined ? '' : String(valeur);
+  const champNormalise = String(champ ?? '').trim();
+  if (!champNormalise) throw new Error('modifierPassage : champ invalide (vide)');
+
+  // Passage existant ?
+  const res = base.exec(
+    'SELECT id, personne_id, volet_type, date_passage, prochaine_echeance, donnees_json, remarques, auteur FROM passages WHERE id = ?',
+    [texteId],
+  );
+  if (!res.length || !res[0].values.length) throw new Error(`modifierPassage : passage introuvable (id=${texteId})`);
+  const passage = passageDeLigne(res[0].columns, res[0].values[0]);
+  if (!VOLETS_VALIDES.includes(passage.voletType)) {
+    throw new Error(`modifierPassage : type de volet invalide (${passage.voletType || 'inconnu'})`);
   }
-  const nouveau = { ...ancien };
-  if (champ === 'remarques') {
-    base.run('UPDATE passages SET remarques = ?, updated_at = ? WHERE id = ?', [valeur, maintenant, id]);
-    nouveau.remarques = valeur;
-  } else if (champ === 'date_passage') {
-    base.run('UPDATE passages SET date_passage = ?, updated_at = ? WHERE id = ?', [valeur, maintenant, id]);
-    nouveau.date = valeur;
-  } else if (champ === 'prochaine_echeance') {
-    base.run('UPDATE passages SET prochaine_echeance = ?, updated_at = ? WHERE id = ?', [valeur || null, maintenant, id]);
-    nouveau.prochaineEcheance = valeur || null;
+  const existePersonne = base.exec('SELECT 1 AS ok FROM personnes WHERE id = ?', [passage.personneId]);
+  if (!existePersonne.length || !existePersonne[0].values.length) {
+    throw new Error(`modifierPassage : personne introuvable (id=${passage.personneId})`);
+  }
+
+  // Ancienne et nouvelle valeur pour l'audit
+  const ancien: Record<string, unknown> = { ...passage.donnees };
+  const nouveau: Record<string, unknown> = { ...ancien };
+
+  if (champNormalise === 'date' || champNormalise === 'date_passage') {
+    const dateValidee = validerEtNormaliserDate(texteValeur, 'date_passage', false) ?? '';
+    ancien.date = passage.datePassage;
+    nouveau.date = dateValidee;
+    base.run('UPDATE passages SET date_passage = ?, updated_at = ? WHERE id = ?', [dateValidee, maintenant, texteId]);
+  } else if (champNormalise === 'prochaine_echeance') {
+    const dateValidee = validerEtNormaliserDate(texteValeur, 'prochaine_echeance', true);
+    ancien.prochaineEcheance = passage.prochaineEcheance;
+    nouveau.prochaineEcheance = dateValidee;
+    base.run('UPDATE passages SET prochaine_echeance = ?, updated_at = ? WHERE id = ?', [dateValidee, maintenant, texteId]);
     // synchroniser l'Agenda
-    synchroniserEcheance(id, passage?.personneId ?? 0, valeur);
+    synchroniserEcheance(texteId, passage.personneId, dateValidee);
+  } else if (champNormalise === 'remarques') {
+    ancien.remarques = passage.remarques;
+    nouveau.remarques = texteValeur;
+    base.run('UPDATE passages SET remarques = ?, updated_at = ? WHERE id = ?', [texteValeur, maintenant, texteId]);
+  } else if (champNormalise === 'auteur') {
+    const auteurValide = validerTexteNonVide(texteValeur, 'auteur', 'modifierPassage');
+    ancien.auteur = passage.auteur;
+    nouveau.auteur = auteurValide;
+    base.run('UPDATE passages SET auteur = ?, updated_at = ? WHERE id = ?', [auteurValide, maintenant, texteId]);
   } else {
-    ancien[champ] = ancien[champ] ?? null;
-    nouveau[champ] = valeur;
-    const donneesJson = JSON.stringify(nouveau);
-    base.run('UPDATE passages SET donnees_json = ?, updated_at = ? WHERE id = ?', [donneesJson, maintenant, id]);
+    // Champ dynamique stocké dans donnees_json
+    ancien[champNormalise] = ancien[champNormalise] ?? null;
+    nouveau[champNormalise] = texteValeur;
+    base.run('UPDATE passages SET donnees_json = ?, updated_at = ? WHERE id = ?', [JSON.stringify(nouveau), maintenant, texteId]);
   }
-  // audit
+  // Audit
   base.run('INSERT INTO audit_log (table_name, record_id, action, before_json, after_json, user_id, at) VALUES (?, ?, ?, ?, ?, ?, ?)',
-    ['passages', 0, 'update', JSON.stringify(ancien), JSON.stringify(nouveau), utilisateur, maintenant]);
+    ['passages', 0, 'update', JSON.stringify(ancien), JSON.stringify(nouveau), texteUtilisateur, maintenant]);
   await persister();
 }
 
 export async function supprimerPassage(id: string, utilisateur: string): Promise<void> {
   const base = await ouvrirBase();
   const maintenant = new Date().toISOString();
-  // lire le passage pour l'audit et l'échéance
-  const res = base.exec('SELECT personne_id, prochaine_echeance FROM passages WHERE id = ?', [id]);
-  let personneId = 0;
-  let echeance: string | null = null;
-  if (res.length && res[0].values.length) {
-    personneId = Number(res[0].values[0][0]);
-    echeance = res[0].values[0][1] as string | null;
+  const texteId = String(id ?? '').trim();
+  if (!texteId) throw new Error('supprimerPassage : identifiant de passage invalide (vide)');
+  const texteUtilisateur = validerTexteUtilisateur(utilisateur, 'supprimerPassage');
+
+  // Passage existant ?
+  const res = base.exec('SELECT personne_id, prochaine_echeance FROM passages WHERE id = ?', [texteId]);
+  if (!res.length || !res[0].values.length) throw new Error(`supprimerPassage : passage introuvable (id=${texteId})`);
+  const personneId = Number(res[0].values[0][0]);
+  if (!Number.isInteger(personneId) || personneId < 1) {
+    throw new Error(`supprimerPassage : personne introuvable pour le passage (id=${texteId})`);
   }
-  // supprimer le RDV lié si présent
-  if (echeance) {
-    base.run('DELETE FROM rendezvous WHERE source_passage_id = ?', [id]);
+  const existePersonne = base.exec('SELECT 1 AS ok FROM personnes WHERE id = ?', [personneId]);
+  if (!existePersonne.length || !existePersonne[0].values.length) {
+    throw new Error(`supprimerPassage : personne introuvable (id=${personneId})`);
   }
-  // audit avant suppression
-  const avant = res.length && res[0].values.length ? JSON.stringify({ id, personneId, echeance }) : null;
+
+  // Suppression du RDV lié au passage si présent
+  base.run('DELETE FROM rendezvous WHERE source_passage_id = ?', [texteId]);
+
+  // Audit avant suppression
+  const avant = JSON.stringify({ id: texteId, personneId, echeance: res[0].values[0][1] ?? null });
   base.run('INSERT INTO audit_log (table_name, record_id, action, before_json, after_json, user_id, at) VALUES (?, ?, ?, ?, ?, ?, ?)',
-    ['passages', 0, 'delete', avant, null, utilisateur, maintenant]);
-  base.run('DELETE FROM passages WHERE id = ?', [id]);
+    ['passages', 0, 'delete', avant, null, texteUtilisateur, maintenant]);
+  base.run('DELETE FROM passages WHERE id = ?', [texteId]);
   await persister();
 }
 
