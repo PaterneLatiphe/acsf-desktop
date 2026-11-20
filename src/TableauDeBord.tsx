@@ -2,8 +2,8 @@
 
 import React, { useEffect, useState } from 'react';
 import { CalendarDays, Check, Database, NotebookPen, UserRoundPlus, Users } from 'lucide-react';
-import { listerPersonnes, listerRdvs, type Rdv } from './db';
-import { formaterDateHeureFr } from './format';
+import { listerContributions, listerPersonnes, listerRdvs, type Personne, type Rdv } from './db';
+import { formaterDateFr, formaterDateHeureFr } from './format';
 import { IllustrationVide } from './Etats';
 
 type Ecran = 'tableau' | 'personnes' | 'agenda' | 'suivi' | 'conseils' | 'rapports';
@@ -23,8 +23,10 @@ interface Props {
 const TableauDeBord: React.FC<Props> = ({ onCreer, onNaviguer }) => {
   const [stats, setStats] = useState({ personnes: 0, parrainages: 0, rdvsSemaine: 0, contributions: 0 });
   const [prochains, setProchains] = useState<Rdv[]>([]);
+  const [aRevoir, setARevoir] = useState<{ id: number; titre: string; detail: string }[]>([]);
+  const [activite, setActivite] = useState<{ id: number; titre: string; detail: string }[]>([]);
   const [erreur, setErreur] = useState<string | null>(null);
-  const [ tentative, setTentative] = useState(0);
+  const [tentative, setTentative] = useState(0);
 
   useEffect(() => {
     let actif = true;
@@ -32,6 +34,9 @@ const TableauDeBord: React.FC<Props> = ({ onCreer, onNaviguer }) => {
     (async () => {
       try {
         const [personnes, rdvs] = await Promise.all([listerPersonnes(), listerRdvs()]);
+        const listes = await Promise.all(personnes.map((p) => listerContributions(p.id)));
+        const enAttente = listes.flat().filter((c) => c.statut === 'pending');
+        const parPersonne = (p: Personne) => `${p.prenom} ${p.nom}`;
         const lundi = new Date();
         lundi.setHours(0, 0, 0, 0);
         lundi.setDate(lundi.getDate() - ((lundi.getDay() + 6) % 7));
@@ -49,8 +54,17 @@ const TableauDeBord: React.FC<Props> = ({ onCreer, onNaviguer }) => {
           })
           .slice(0, 3);
         if (actif) {
-          setStats({ personnes: personnes.length, parrainages: 0, rdvsSemaine, contributions: 0 });
+          setStats({ personnes: personnes.length, parrainages: 0, rdvsSemaine, contributions: enAttente.length });
           setProchains(aVenir);
+          setARevoir(enAttente.slice(0, 3).map((c) => ({
+            id: c.id,
+            titre: parPersonne(personnes.find((p) => p.id === c.personneId) ?? personnes[0]),
+            detail: `${c.champ} · ${formaterDateFr(c.createdAt)}`,
+          })));
+          setActivite([...personnes]
+            .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))
+            .slice(0, 3)
+            .map((p) => ({ id: p.id, titre: parPersonne(p), detail: `Fiche créée le ${formaterDateFr(p.createdAt)}` })));
         }
       } catch {
         if (actif) setErreur('Les chiffres n’ont pas pu être chargés.');
@@ -90,7 +104,7 @@ const TableauDeBord: React.FC<Props> = ({ onCreer, onNaviguer }) => {
         <button type="button" className="kpi kpi-btn" onClick={() => onNaviguer('personnes')}>
           <span className="kpi-tete"><span className="chip brique"><NotebookPen size={20} /></span><span className="kpi-label">Contributions à revoir</span></span>
           <span className="kpi-chiffre">{stats.contributions}</span>
-          <span className="kpi-var">Rien à vérifier</span>
+          <span className="kpi-var">{stats.contributions ? `${stats.contributions} contribution(s) en attente` : 'Rien à vérifier'}</span>
         </button>
       </div>
 
@@ -120,15 +134,30 @@ const TableauDeBord: React.FC<Props> = ({ onCreer, onNaviguer }) => {
 
         <div className="bloc">
           <div className="bloc-titre">Contributions à revoir</div>
-          <div className="ligne">
-            <div className="ligne-point"><Check size={18} /></div>
-            <div className="info"><b>Tout est à jour</b><small>Les contributions à valider apparaîtront ici.</small></div>
-          </div>
+          {aRevoir.length === 0 ? (
+            <div className="ligne">
+              <div className="ligne-point"><Check size={18} /></div>
+              <div className="info"><b>Tout est à jour</b><small>Les contributions à valider apparaîtront ici.</small></div>
+            </div>
+          ) : aRevoir.map((c) => (
+            <div className="ligne" key={c.id}>
+              <div className="ligne-point"><NotebookPen size={18} /></div>
+              <div className="info"><b>{c.titre}</b><small>{c.detail}</small></div>
+              <span className="pill pend">À revoir</span>
+            </div>
+          ))}
           <div className="bloc-titre" style={{ marginTop: 'var(--sp-5)' }}>Activité récente</div>
-          <div className="ligne">
-            <div className="ligne-point"><Database size={18} /></div>
-            <div className="info"><b>Données sur ce poste</b><small>Les dernières fiches et rendez-vous créés apparaîtront ici.</small></div>
-          </div>
+          {activite.length === 0 ? (
+            <div className="ligne">
+              <div className="ligne-point"><Database size={18} /></div>
+              <div className="info"><b>Aucune activité</b><small>Les dernières fiches créées apparaîtront ici.</small></div>
+            </div>
+          ) : activite.map((a) => (
+            <div className="ligne" key={a.id}>
+              <div className="ligne-point"><Users size={18} /></div>
+              <div className="info"><b>{a.titre}</b><small>{a.detail}</small></div>
+            </div>
+          ))}
         </div>
       </div>
 
