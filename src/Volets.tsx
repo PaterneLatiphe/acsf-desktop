@@ -42,6 +42,7 @@ type VoletsProps = {
   utilisateur: string;
   personne?: { nom: string; prenom: string; sexe?: string; dateNaissance?: string; telephone?: string; adresse?: string; code?: string; programme?: string; statut?: string };
   onChanger?: () => void;
+  onRetour?: () => void;
 };
 
 type Statut = 'idle' | 'saving' | 'saved' | 'error';
@@ -54,7 +55,7 @@ type DialogConfirm = {
   onAction: () => void;
   onAnnuler?: () => void;
 };
-type EvolutionRecent = { cle: string; date: string; label: string; detail: string };
+type EvolutionRecent = { id: string; cle: string; date: string; label: string; detail: string };
 
 function normaliserValeur(valeur: any): string {
   if (valeur === null || valeur === undefined) return '';
@@ -93,7 +94,7 @@ function resumePassage(p: Passage): string {
   return valeurs.length ? valeurs.join(' · ') : '(sans note)';
 }
 
-const Volets: React.FC<VoletsProps> = ({ personneId, utilisateur, personne, onChanger }) => {
+const Volets: React.FC<VoletsProps> = ({ personneId, utilisateur, personne, onChanger, onRetour }) => {
   const [voletActif, setVoletActif] = useState('synthese');
   const [passagesParVolet, setPassagesParVolet] = useState<Record<string, Passage[]>>({});
   const [consentementSpirituel, setConsentementSpirituel] = useState<Consent | null>(null);
@@ -107,6 +108,7 @@ const Volets: React.FC<VoletsProps> = ({ personneId, utilisateur, personne, onCh
   const [dernierChangement, setDernierChangement] = useState<DernierChangement | null>(null);
   const [nouvellesModifications, setNouvellesModifications] = useState(0);
   const gridApiRef = useRef<any>(null);
+  const statutTimerRef = useRef<number | null>(null);
 
   const afficherToast = useCallback((message: string) => {
     setToast(message);
@@ -115,7 +117,12 @@ const Volets: React.FC<VoletsProps> = ({ personneId, utilisateur, personne, onCh
 
   const signaler = useCallback((nouveau: Statut) => {
     setStatut(nouveau);
-    if (nouveau === 'saved') window.setTimeout(() => setStatut('idle'), 1800);
+    if (statutTimerRef.current !== null) window.clearTimeout(statutTimerRef.current);
+    statutTimerRef.current = nouveau === 'saved' ? window.setTimeout(() => setStatut('idle'), 1800) : null;
+  }, []);
+
+  useEffect(() => () => {
+    if (statutTimerRef.current !== null) window.clearTimeout(statutTimerRef.current);
   }, []);
 
   // Chargement de tous les volets + consentement + échanges
@@ -138,16 +145,19 @@ const Volets: React.FC<VoletsProps> = ({ personneId, utilisateur, personne, onCh
   }, [charger]);
 
   // Ré-enregistrement de la dernière modification (confirmation avant changement de volet)
-  const enregistrerDerniereModification = useCallback(async () => {
-    if (!dernierChangement) return;
+  const enregistrerDerniereModification = useCallback(async (): Promise<boolean> => {
+    if (!dernierChangement) return true;
     signaler('saving');
     try {
       await modifierPassage(dernierChangement.id, dernierChangement.champ, dernierChangement.valeur, utilisateur);
       setNouvellesModifications(0);
+      setDernierChangement(null);
       signaler('saved');
+      return true;
     } catch {
       signaler('error');
       afficherToast('Échec de l’enregistrement');
+      return false;
     }
   }, [dernierChangement, utilisateur, signaler, afficherToast]);
 
@@ -155,6 +165,10 @@ const Volets: React.FC<VoletsProps> = ({ personneId, utilisateur, personne, onCh
     signaler('saving');
     try {
       await charger();
+      setFiltreSynthese('tous');
+      setRecherche('');
+      gridApiRef.current?.setFilterModel(null);
+      gridApiRef.current?.applyColumnState?.({ state: [], defaultState: { sort: null } });
       signaler('saved');
       afficherToast('Données rafraîchies');
     } catch {
@@ -190,8 +204,7 @@ const Volets: React.FC<VoletsProps> = ({ personneId, utilisateur, personne, onCh
         action: 'Enregistrer',
         onAction: async () => {
           setDialog(null);
-          await enregistrerDerniereModification();
-          await chargerSaufStatut();
+          if (await enregistrerDerniereModification()) await chargerSaufStatut();
         },
         onAnnuler: () => void chargerSaufStatut(),
       });
@@ -220,7 +233,8 @@ const Volets: React.FC<VoletsProps> = ({ personneId, utilisateur, personne, onCh
   const evolutionsRecentes = useMemo((): EvolutionRecent[] => {
     const liste: EvolutionRecent[] = [];
     for (const cle of VOLETS_SYNTHESE) {
-      const passages = (passagesParVolet[cle] || []).slice().sort((a, b) => b.datePassage.localeCompare(a.datePassage));
+      const passages = (passagesParVolet[cle] || []).slice().sort((a, b) => b.datePassage.localeCompare(a.datePassage)
+        || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       const top = passages[0];
       if (top) {
         const valeurs = Object.entries(top.donnees || {})
@@ -228,7 +242,7 @@ const Volets: React.FC<VoletsProps> = ({ personneId, utilisateur, personne, onCh
           .slice(0, 2)
           .map(([k, v]) => `${labelDe(cle, k)} : ${v}`);
         if (top.prochaineEcheance) valeurs.push(`Échéance ${formaterDate(top.prochaineEcheance)}`);
-        liste.push({ cle, date: top.datePassage, label: `Nouveau passage ${LIBELLES[cle]}`, detail: valeurs.join(' · ') || '(sans note)' });
+        liste.push({ id: `top-${top.id}`, cle, date: top.datePassage, label: `Nouveau passage ${LIBELLES[cle]}`, detail: valeurs.join(' · ') || '(sans note)' });
       }
       for (let i = 1; i < Math.min(passages.length, 3); i++) {
         if (!top) continue;
@@ -238,6 +252,7 @@ const Volets: React.FC<VoletsProps> = ({ personneId, utilisateur, personne, onCh
           const ancien = valeurDe(passages[i], champ);
           if (String(nouveau ?? '') === String(ancien ?? '')) continue;
           liste.push({
+            id: `diff-${top.id}-${passages[i].id}-${champ}`,
             cle,
             date: top.datePassage,
             label: `${labelDe(cle, champ)} — ${LIBELLES[cle]}`,
@@ -257,7 +272,8 @@ const Volets: React.FC<VoletsProps> = ({ personneId, utilisateur, personne, onCh
         if (!filtre) return true;
         return `${LIBELLES[p.voletType] ?? p.voletType} ${p.auteur} ${resumePassage(p)}`.toLowerCase().includes(filtre);
       })
-      .sort((a, b) => b.datePassage.localeCompare(a.datePassage))
+      .sort((a, b) => b.datePassage.localeCompare(a.datePassage)
+        || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
       .slice(0, 10);
   }, [tousPassages, filtreSynthese, recherche]);
 
@@ -310,28 +326,40 @@ const Volets: React.FC<VoletsProps> = ({ personneId, utilisateur, personne, onCh
     }
   }, [utilisateur, appliquerMajLocale, signaler, afficherToast]);
 
-  // Nouveau passage : création réelle en base, ajout en tête de liste
+  // Nouveau passage : création en base, relecture et affichage en tête, filtres remis à zéro
   const ajouterPassage = useCallback(async () => {
     if (!peutAjouter) return;
     signaler('saving');
     try {
       const passage = await creerPassage(personneId, voletActif, utilisateur);
-      setPassagesParVolet((precedent) => ({
-        ...precedent,
-        [voletActif]: [passage, ...(precedent[voletActif] || [])],
-      }));
+      const passagesFrais = [...await listerPassages(personneId, voletActif)]
+        .sort((a, b) => b.datePassage.localeCompare(a.datePassage)
+          || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      setPassagesParVolet((precedent) => ({ ...precedent, [voletActif]: passagesFrais }));
+      setFiltreSynthese('tous');
+      setRecherche('');
+      gridApiRef.current?.setFilterModel(null);
+      gridApiRef.current?.applyColumnState?.({ state: [], defaultState: { sort: null } });
       signaler('saved');
       afficherToast('Nouveau passage créé — saisissez vos observations');
       onChanger?.();
       const premiereColonne = colonnesVolet.find((c: any) => c.editable !== false)?.cle;
       if (premiereColonne) {
-        window.setTimeout(() => {
-          try {
-            gridApiRef.current?.startEditingCell({ rowIndex: 0, colKey: premiereColonne });
-          } catch {
-            /* la grille n'est peut-être pas encore prête */
+        const editer = (tentatives = 0): void => {
+          const api = gridApiRef.current;
+          const rangee = api?.getRowNode(passage.id);
+          if (rangee && typeof rangee.rowIndex === 'number' && rangee.rowIndex >= 0) {
+            try {
+              api?.ensureIndexVisible(rangee.rowIndex, 'top');
+              api?.startEditingCell({ rowIndex: rangee.rowIndex, colKey: premiereColonne });
+              return;
+            } catch {
+              /* la grille n'est peut-être pas encore prête */
+            }
           }
-        }, 250);
+          if (tentatives < 10) window.setTimeout(() => editer(tentatives + 1), 50);
+        };
+        window.setTimeout(() => editer(), 50);
       }
     } catch {
       signaler('error');
@@ -500,7 +528,7 @@ const Volets: React.FC<VoletsProps> = ({ personneId, utilisateur, personne, onCh
         ) : (
           <ul className="evolutions">
             {evolutionsVolets.map((e) => (
-              <li key={`${e.cle}|${e.date}|${e.label}`}>
+              <li key={e.id}>
                 <div className="evo-tete">
                   <b>{e.label}</b>
                   <span>{formaterDate(e.date)} · {LIBELLES[e.cle] ?? e.cle}</span>
@@ -575,12 +603,14 @@ const Volets: React.FC<VoletsProps> = ({ personneId, utilisateur, personne, onCh
   );
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
-      <BandeauIdentite personne={personne} />
-
-      {/* Barre d'action */}
-      <div className="barre-actions">
-        <span>{LIBELLES[voletActif]} — {libelleStatut}</span>
+    <div className="dossier-colonne">
+      {/* Une seule ligne fine : identité, titre du volet et actions */}
+      <div className="dossier-barre">
+        {onRetour && (
+          <button type="button" className="btn btn-secondaire dossier-retour" onClick={onRetour}>← Retour</button>
+        )}
+        <BandeauIdentite personne={personne} />
+        <span className="dossier-titre">{LIBELLES[voletActif]}<small>{libelleStatut}</small></span>
         <div className="actions">
           {peutAjouter && (
             <button type="button" className="btn btn-secondaire" onClick={ajouterPassage}>
@@ -596,8 +626,8 @@ const Volets: React.FC<VoletsProps> = ({ personneId, utilisateur, personne, onCh
         </div>
       </div>
 
-      {/* Zone centrale */}
-      <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      {/* Zone centrale : seule la grille défile */}
+      <div className="dossier-zone">
         {voletActif === 'synthese' && vueSynthese}
         {voletActif === 'historique' && vueHistorique}
         {voletVerrouille && vueSpiritualiteVerrouillee}
@@ -607,6 +637,7 @@ const Volets: React.FC<VoletsProps> = ({ personneId, utilisateur, personne, onCh
             colonnes={colonnesVolet}
             onCellValueChanged={onCellValueChanged}
             onGridReady={(params: any) => { gridApiRef.current = params.api; }}
+            onGridDetached={() => { gridApiRef.current = null; }}
             onCellContextMenu={onCellContextMenu}
           />
         )}

@@ -5,7 +5,6 @@ import { UserRoundPlus, Download } from 'lucide-react';
 import { creerPersonne, listerPersonnes, type Personne } from './db';
 import { dateIso, exporterTableur } from './exportTableur';
 import { UTILISATEUR_COURANT } from './utilisateur';
-import { formaterDateFr } from './format';
 import { Erreur, IllustrationVide } from './Etats';
 import Volets from './Volets';
 import FormulairePersonne, { VIDE, type Formulaire } from './personnes/FormulairePersonne';
@@ -99,20 +98,16 @@ const Personnes: React.FC<{ onChanger?: () => void }> = ({ onChanger }) => {
 
   if (selection) {
     return (
-      <div className="page-enter">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-3)', marginBottom: 'var(--sp-2)', flexWrap: 'wrap' }}>
-          <button type="button" className="btn btn-secondaire" onClick={() => setSelection(null)}>← Retour</button>
-          <div>
-            <h1 className="page" style={{ fontSize: 22 }}>Dossier — {selection.prenom} {selection.nom}</h1>
-            <p className="sous-titre">
-              {selection.dateNaissance ? `né(e) le ${formaterDateFr(selection.dateNaissance)} · ` : ''}
-              {selection.telephone || 'pas de tél.'} · Code : <code>{selection.code}</code>
-            </p>
-          </div>
-        </div>
+      <div className="page-enter dossier-page">
         <div className="fiche-page">
           <div className="dossier-corps">
-            <Volets personneId={selection.id} utilisateur={UTILISATEUR_COURANT} personne={selection} onChanger={recharger} />
+            <Volets
+              personneId={selection.id}
+              utilisateur={UTILISATEUR_COURANT}
+              personne={selection}
+              onChanger={recharger}
+              onRetour={() => setSelection(null)}
+            />
           </div>
         </div>
         {toast && <div role="status" className="toast">{toast}</div>}

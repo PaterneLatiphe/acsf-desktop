@@ -1,7 +1,7 @@
 // Grille AG Grid - composant encapsulant la grille avec configuration de colonnes
 // Reçoit les passages bruts et la configuration de colonnes, gère wrapText, tri, édition
 
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { AgGridReact } from 'ag-grid-react';
 import { ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
 import 'ag-grid-community/styles/ag-grid.css';
@@ -22,6 +22,7 @@ export interface GrilleVoletProps {
   colonnes: ColonneVolet[];
   onCellValueChanged?: (event: any) => void;
   onGridReady?: (params: any) => void;
+  onGridDetached?: () => void;
   onCellContextMenu?: (event: any) => void;
 }
 
@@ -75,10 +76,17 @@ export const GrilleVolet: React.FC<GrilleVoletProps> = ({
   colonnes,
   onCellValueChanged,
   onGridReady,
+  onGridDetached,
   onCellContextMenu,
 }) => {
-  // ColumnDefs générés depuis la configuration unique — largeurs flexibles (réparties)
-  const columnDefs = useMemo(() => colonnes.map((col: any) => ({
+  const conteneurRef = useRef<HTMLDivElement>(null);
+  const apiRef = useRef<any>(null);
+  const detacheRef = useRef(onGridDetached);
+  detacheRef.current = onGridDetached;
+
+  // ColumnDefs générés depuis la configuration unique — largeurs flexibles (réparties).
+  // L'ordre des lignes vient des données déjà triées (date_passage puis created_at).
+  const columnDefs = useMemo<any[]>(() => colonnes.map((col: any) => ({
     field: col.cle,
     headerName: col.libelle,
     editable: col.editable !== false,
@@ -119,6 +127,7 @@ export const GrilleVolet: React.FC<GrilleVoletProps> = ({
       auteur: p.auteur,
       remarques: p.remarques,
       prochaineEcheance: p.prochaineEcheance,
+      createdAt: p.createdAt ?? '',
     };
     for (const [k, v] of Object.entries(p.donnees || {})) {
       row[k] = v;
@@ -134,8 +143,31 @@ export const GrilleVolet: React.FC<GrilleVoletProps> = ({
   }, [onCellValueChanged]);
 
   const handleGridReady = useCallback((params: any) => {
+    apiRef.current = params.api;
+    params.api?.sizeColumnsToFit?.();
     onGridReady?.(params);
   }, [onGridReady]);
+
+  const handleGridSizeChanged = useCallback((params: any) => {
+    params.api?.sizeColumnsToFit?.();
+  }, []);
+
+  // Le redimensionnement de la fenêtre et le changement d'onglet redessinent la grille
+  useEffect(() => {
+    const element = conteneurRef.current;
+    if (!element || typeof ResizeObserver === 'undefined') return undefined;
+    const observateur = new ResizeObserver(() => {
+      apiRef.current?.onGridHeightChanged?.();
+      apiRef.current?.sizeColumnsToFit?.();
+    });
+    observateur.observe(element);
+    return () => observateur.disconnect();
+  }, []);
+
+  useEffect(() => () => {
+    apiRef.current = null;
+    detacheRef.current?.();
+  }, []);
 
   // Hauteur de ligne calculée pour que le texte ne soit jamais coupé
   const getRowHeight = useCallback((params: any) => {
@@ -157,7 +189,7 @@ export const GrilleVolet: React.FC<GrilleVoletProps> = ({
   }, [colonnes]);
 
   return (
-    <div className="ag-theme-quartz" style={{ width: '100%', height: '100%', minHeight: 240 }}>
+    <div ref={conteneurRef} className="ag-theme-quartz grille-volet">
       <AgGridReact
         rowData={passagesForGrid}
         columnDefs={columnDefs}
@@ -174,6 +206,7 @@ export const GrilleVolet: React.FC<GrilleVoletProps> = ({
         }}
         onCellValueChanged={handleCellValueChanged}
         onGridReady={handleGridReady}
+        onGridSizeChanged={handleGridSizeChanged}
         onCellContextMenu={onCellContextMenu}
         undoRedoCellEditing={true}
         undoRedoCellEditingLimit={20}

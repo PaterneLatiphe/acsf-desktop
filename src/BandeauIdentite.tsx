@@ -19,24 +19,12 @@ export const BandeauIdentite: React.FC<BandeauIdentiteProps> = ({ personne }) =>
   }
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', padding: 'var(--sp-3)', borderBottom: '1px solid var(--gris-light)', minHeight: 30 }}>
-      <span style={{ fontWeight: 'bold', marginRight: 'var(--sp-2)' }}>{personne.nom}</span>
+    <div className="bandeau-identite">
+      <b>{personne.nom}</b>
       <span>{personne.prenom}</span>
-      {personne.dateNaissance && (
-        <span style={{ marginLeft: 'var(--sp-4)', fontSize: '.75rem', color: 'var(--gris)' }}>
-          {personne.dateNaissance}
-        </span>
-      )}
-      {personne.telephone && (
-        <span style={{ marginLeft: 'var(--sp-4)', fontSize: '.75rem', color: 'var(--gris)' }}>
-          {personne.telephone}
-        </span>
-      )}
-      {personne.code && (
-        <span style={{ marginLeft: 'var(--sp-4)', fontSize: '.75rem', color: 'var(--gris)' }}>
-          Code: {personne.code}
-        </span>
-      )}
+      {personne.dateNaissance && <span className="bandeau-detail">{personne.dateNaissance}</span>}
+      {personne.telephone && <span className="bandeau-detail">{personne.telephone}</span>}
+      {personne.code && <span className="bandeau-detail">Code : {personne.code}</span>}
     </div>
   );
 };
