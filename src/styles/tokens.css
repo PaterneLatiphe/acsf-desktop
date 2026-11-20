@@ -1,0 +1,52 @@
+/* ACSF Desktop — unique fichier de variables (couleurs, espacements, rayons, ombres, type).
+   Règles : un seul bleu nuit, jaune réservé à l'accent, fond chaud jamais blanc pur. */
+
+@import "@fontsource/inter/400.css";
+@import "@fontsource/inter/600.css";
+@import "@fontsource/inter/700.css";
+@import "@fontsource/inter/800.css";
+
+:root{
+  /* Identité : une seule valeur de bleu nuit, un seul jaune d'accent. */
+  --nuit:#150A54;
+  --jaune:#FFF268;
+
+  /* Surfaces et textes */
+  --fond:#F6F4EE;
+  --feuille:#FFFFFF;
+  --plume:#191937;
+  --gris:#55536A;
+  --gris-clair:#66647A;
+  --ligne:#E4E0D6;
+
+  /* Sur le bleu nuit : transparences uniquement, jamais un second bleu. */
+  --sur-nuit:rgba(255,255,255,.86);
+  --sur-nuit-faible:rgba(255,255,255,.62);
+  --nuit-ligne:rgba(255,255,255,.14);
+  --nuit-survol:rgba(255,255,255,.09);
+
+  /* États discrets */
+  --succes-fond:#E7F1DF;  --succes-texte:#245B20;
+  --alerte-fond:#FFF3CC;  --alerte-texte:#695100;
+  --erreur-fond:#FBE6DF;  --erreur-texte:#8A2F15;
+
+  /* Espacements : échelle unique 4 / 8 / 12 / 16 / 24 / 32 */
+  --sp-1:4px; --sp-2:8px; --sp-3:12px;
+  --sp-4:16px; --sp-5:24px; --sp-6:32px;
+  --pad-page:24px;
+  --gap-bloc:24px;
+
+  /* Rayons : 12-16 cartes, 8-10 champs et boutons */
+  --r-sm:8px; --r-md:12px; --r-lg:16px; --r-pill:999px;
+
+  /* Ombres très douces, jamais de liseré coloré */
+  --ombre-1:0 1px 2px rgba(21,10,84,.05);
+  --ombre-2:0 2px 8px rgba(21,10,84,.06);
+  --ombre-3:0 10px 28px rgba(21,10,84,.12);
+
+  /* Typographie Inter, écarts de taille assumés */
+  --font:"Inter","Segoe UI",Arial,sans-serif;
+  --titre-page:30px; --titre-bloc:17px; --corps:15px;
+  --petit:13px; --micro:12px; --chiffre:38px;
+  --entete-hauteur:60px;
+}

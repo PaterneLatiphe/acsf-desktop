@@ -1,4 +1,4 @@
-// Ton de charte pour l'export Excel — dérivé de src/charte.css
+// Ton de charte pour l'export Excel — dérivé de src/styles/tokens.css
 // Couleurs au format ARGB (ex. 'FF150A54' = #150A54).
 // Le bleu nuit reste pour les en-têtes, le fond neutre pour les lignes impaires,
 // le blanc pour le texte sur bleu.
