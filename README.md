@@ -47,3 +47,8 @@ agence, APK client, validation directe par l'administrateur) sont décrites dans
 
 Le catalogue des prestations de l'agence (champs, catégories, statuts et comportement de la
 liste) est décrit dans [OFFRES.md](OFFRES.md).
+
+## Rapports
+
+La différence entre le Tableau de bord et les Rapports, les types de rapports et leurs
+filtres sont décrits dans [RAPPORTS.md](RAPPORTS.md).

@@ -108,6 +108,17 @@
   white-space:nowrap;font-variant-numeric:tabular-nums;
 }
 
+/* Rapports : paramètres de synthèse avec libellés visibles. */
+.rapports-outils{display:flex;align-items:center;gap:var(--sp-3);flex-wrap:wrap}
+.rapports-champ{display:flex;align-items:center;gap:var(--sp-2)}
+.rapports-champ span{font-size:var(--micro);color:var(--gris)}
+.rapports-champ select,.rapports-champ input{
+  min-height:32px;padding:0 var(--sp-2);font-size:12px;
+  border:1px solid var(--ligne);border-radius:var(--r-sm);
+  background:var(--feuille);color:var(--plume);
+}
+.rapports-champ select{min-width:170px;max-width:100%}
+
 @media (prefers-reduced-motion:reduce){
   .toast,.etat-grille,.statut-donnees{transition:none}
 }
