@@ -26,8 +26,8 @@ svg.lucide{stroke-width:1.8}
   padding:var(--sp-5) var(--sp-4) var(--sp-4);
   border-bottom:1px solid var(--nuit-ligne);min-height:calc(var(--entete-hauteur) + var(--sp-4));
 }
-.logo-block img{width:42px;height:42px;object-fit:contain;flex:0 0 42px}
-.logo-texte b{display:block;font-size:15px;color:var(--blanc);line-height:1.2}
+.logo-block img{width:36px;height:36px;object-fit:contain;flex:0 0 36px}
+.logo-texte b{display:block;font-size:12px;color:var(--blanc);line-height:1.5}
 .logo-texte small{display:block;font-size:var(--micro);color:var(--sur-nuit-faible);margin-top:2px}
 .side.collapsed .logo-block{justify-content:center;padding:var(--sp-5) var(--sp-2) var(--sp-4)}
 .side.collapsed .logo-texte{display:none}
@@ -35,9 +35,9 @@ svg.lucide{stroke-width:1.8}
 .nav{display:flex;flex-direction:column;gap:var(--sp-1);padding:var(--sp-4) var(--sp-3);flex:1}
 .navbtn{
   display:flex;align-items:center;gap:var(--sp-3);width:calc(100% - var(--sp-2)*2);
-  margin:0 var(--sp-1);min-height:44px;padding:var(--sp-2) var(--sp-3);
+  margin:0 var(--sp-1);min-height:34px;padding:var(--sp-1) var(--sp-3);
   background:transparent;border:none;border-radius:var(--r-pill);
-  color:var(--sur-nuit-faible);font-size:14px;font-weight:600;text-align:left;cursor:pointer;
+  color:var(--sur-nuit-faible);font-size:12px;font-weight:600;text-align:left;cursor:pointer;
   white-space:nowrap;overflow:hidden;
 }
 .navbtn:hover{background:var(--nuit-survol);color:var(--blanc)}
@@ -49,8 +49,8 @@ svg.lucide{stroke-width:1.8}
 
 .side-foot{padding:var(--sp-3);border-top:1px solid var(--nuit-ligne)}
 .menu-toggle{
-  display:flex;align-items:center;gap:var(--sp-2);width:100%;min-height:44px;
-  padding:var(--sp-2) var(--sp-3);background:transparent;color:var(--sur-nuit-faible);
+  display:flex;align-items:center;gap:var(--sp-2);width:100%;min-height:34px;
+  padding:var(--sp-1) var(--sp-3);background:transparent;color:var(--sur-nuit-faible);
   border:1px solid var(--nuit-ligne);border-radius:var(--r-sm);cursor:pointer;font-size:var(--petit);
 }
 .menu-toggle:hover{background:var(--nuit-survol);color:var(--blanc)}
@@ -65,11 +65,11 @@ svg.lucide{stroke-width:1.8}
 }
 .recherche{
   display:flex;align-items:center;gap:var(--sp-2);flex:0 1 420px;min-width:200px;
-  min-height:40px;padding:var(--sp-2) var(--sp-3);background:var(--fond);
+  min-height:34px;padding:var(--sp-1) var(--sp-3);background:var(--fond);
   border:1px solid var(--ligne);border-radius:var(--r-pill);color:var(--gris);
 }
 .recherche:focus-within{border-color:var(--nuit);box-shadow:0 0 0 3px var(--nuit-10)}
-.recherche input{width:100%;border:none;background:transparent;outline:none;font-size:14px;color:var(--plume)}
+.recherche input{width:100%;border:none;background:transparent;outline:none;font-size:12px;color:var(--plume)}
 .recherche input::placeholder{color:var(--gris-clair)}
 .recherche kbd{
   border:1px solid var(--ligne);border-radius:var(--r-sm);background:var(--feuille);
@@ -79,16 +79,16 @@ svg.lucide{stroke-width:1.8}
 .etat-base{display:flex;align-items:center;gap:var(--sp-2);font-size:var(--petit);color:var(--gris)}
 .etat-base .dot{width:8px;height:8px;border-radius:50%;background:var(--succes-texte)}
 .etat-sauvegarde{font-size:var(--micro);color:var(--gris-clair)}
-.user{display:flex;align-items:center;gap:var(--sp-2);font-size:var(--petit);font-weight:600;line-height:1.25}
+.user{display:flex;align-items:center;gap:var(--sp-2);font-size:var(--petit);font-weight:600;line-height:1.5}
 .user small{display:block;font-weight:400;font-size:var(--micro);color:var(--gris-clair)}
 .avatar{
-  width:34px;height:34px;border-radius:50%;background:var(--nuit);color:var(--blanc);
+  width:30px;height:30px;border-radius:50%;background:var(--nuit);color:var(--blanc);
   display:flex;align-items:center;justify-content:center;font-size:var(--micro);font-weight:700;
 }
 
 .content{flex:1;min-height:0;overflow:auto;padding:var(--pad-page);width:100%}
-h1.page{font-size:var(--titre-page);font-weight:800;letter-spacing:-.02em;color:var(--nuit);line-height:1.15}
-.sous-titre{font-size:14px;color:var(--gris-clair);margin-top:var(--sp-1)}
+h1.page{font-size:var(--titre-page);font-weight:800;letter-spacing:-.02em;color:var(--nuit);line-height:1.5}
+.sous-titre{font-size:12px;color:var(--gris-clair);margin-top:var(--sp-1)}
 .page-enter{animation:apparition .18s ease-out both}
 @keyframes apparition{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 

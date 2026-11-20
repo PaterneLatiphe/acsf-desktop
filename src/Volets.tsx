@@ -561,7 +561,7 @@ const Volets: React.FC<VoletsProps> = ({ personneId, utilisateur, personne, onCh
       <div className="bloc">
         <div className="bloc-titre">Évolutions récentes</div>
         {evolutionsVolets.length === 0 ? (
-          <p style={{ color: 'var(--gris)', fontSize: '.85rem', margin: 0 }}>Aucune évolution à signaler pour le moment.</p>
+          <p style={{ color: 'var(--gris)', margin: 0 }}>Aucune évolution à signaler pour le moment.</p>
         ) : (
           <ul className="evolutions">
             {evolutionsVolets.map((e) => (
@@ -580,7 +580,7 @@ const Volets: React.FC<VoletsProps> = ({ personneId, utilisateur, personne, onCh
       <div className="bloc">
         <div className="bloc-titre">Passages récents{filtreLabel}</div>
         {passagesRecents.length === 0 ? (
-          <p style={{ color: 'var(--gris)', fontSize: '.85rem', margin: 0 }}>Aucun passage correspondant.</p>
+          <p style={{ color: 'var(--gris)', margin: 0 }}>Aucun passage correspondant.</p>
         ) : (
           <ul className="passages-recents">
             {passagesRecents.map((p) => (
@@ -618,19 +618,19 @@ const Volets: React.FC<VoletsProps> = ({ personneId, utilisateur, personne, onCh
       <div className="bloc">
         <div className="bloc-titre">Historique des échanges et passages</div>
         {evenements.length === 0 ? (
-          <p style={{ color: 'var(--gris)', fontSize: '.85rem', margin: 0 }}>
+          <p style={{ color: 'var(--gris)', margin: 0 }}>
             Aucun événement enregistré pour cette personne.
           </p>
         ) : (
           <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
             {evenements.map((e) => (
               <li key={e.cle} style={{ borderBottom: '1px solid var(--ligne)', paddingBottom: 8 }}>
-                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', fontSize: '.78rem', color: 'var(--gris)' }}>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', color: 'var(--gris)' }}>
                   <b style={{ color: 'var(--nuit)' }}>{formaterDate(e.date)}</b>
                   <span>{e.type}</span>
                   {e.auteur && <span>· {e.auteur}</span>}
                 </div>
-                {e.contenu && <div style={{ fontSize: '.85rem', color: 'var(--texte)' }}>{e.contenu}</div>}
+                {e.contenu && <div style={{ color: 'var(--texte)' }}>{e.contenu}</div>}
               </li>
             ))}
           </ul>
@@ -709,7 +709,7 @@ const Volets: React.FC<VoletsProps> = ({ personneId, utilisateur, personne, onCh
             type="button"
             role="menuitem"
             className="btn btn-secondaire"
-            style={{ minHeight: 32, padding: '4px 10px', fontSize: '.8rem' }}
+            style={{ minHeight: 30, padding: '2px 8px' }}
             onClick={() => supprimerLigne(menu.id)}
           >
             Supprimer cette ligne

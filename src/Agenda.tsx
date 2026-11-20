@@ -161,10 +161,10 @@ const Agenda: React.FC = () => {
                 <span className={`pill ${r.statut === 'valide' ? 'ok' : r.statut === 'refuse' ? 'ret' : 'pend'}`}>{LIBELLES_STATUT[r.statut] ?? r.statut.toUpperCase()}</span>
                 {(r.statut === 'demande' || r.statut === 'propose') && (
                   <span style={{ display: 'flex', gap: 'var(--sp-2)' }}>
-                    <button type="button" className="btn btn-secondaire" style={{ minHeight: 44, padding: '10px 16px', fontSize: '.8rem' }} onClick={() => changer(r.id, 'valide')}>
+                    <button type="button" className="btn btn-secondaire" onClick={() => changer(r.id, 'valide')}>
                       Valider
                     </button>
-                    <button type="button" className="btn btn-secondaire" style={{ minHeight: 44, padding: '10px 16px', fontSize: '.8rem' }} onClick={() => changer(r.id, 'refuse')}>
+                    <button type="button" className="btn btn-secondaire" onClick={() => changer(r.id, 'refuse')}>
                       Refuser
                     </button>
                   </span>
