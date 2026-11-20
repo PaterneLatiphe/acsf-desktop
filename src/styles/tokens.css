@@ -19,7 +19,16 @@
   --gris-clair:#66647A;
   --ligne:#E4E0D6;
 
-  /* Sur le bleu nuit : transparences uniquement, jamais un second bleu. */
+  /* Blanc et dérivées du nuit : aucune autre valeur de bleu nuit. */
+  --blanc:#FFFFFF;
+  --nuit-08:rgba(21,10,84,.08);
+  --nuit-10:rgba(21,10,84,.10);
+  --nuit-15:rgba(21,10,84,.15);
+  --nuit-35:rgba(21,10,84,.35);
+  --nuit-45:rgba(21,10,84,.45);
+  --jaune-survol:#F2E547;
+
+  /* Sur le bleu nuit : transparences uniquement. */
   --sur-nuit:rgba(255,255,255,.86);
   --sur-nuit-faible:rgba(255,255,255,.62);
   --nuit-ligne:rgba(255,255,255,.14);

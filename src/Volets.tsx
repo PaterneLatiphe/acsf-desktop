@@ -627,8 +627,8 @@ const Volets: React.FC<VoletsProps> = ({ personneId, utilisateur, personne, onCh
             zIndex: 50,
             background: 'var(--feuille)',
             border: '1px solid var(--ligne)',
-            borderRadius: 6,
-            boxShadow: '0 6px 18px rgba(16, 24, 40, .18)',
+            borderRadius: 8,
+            boxShadow: 'var(--ombre-2)',
             padding: 4,
           }}
         >

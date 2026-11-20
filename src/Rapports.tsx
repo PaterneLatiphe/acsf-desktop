@@ -71,7 +71,7 @@ const Rapports: React.FC = () => {
         <div className="bloc-titre">
           <BarChart3 size={18} aria-hidden="true" /> Rapport de suivi des personnes
         </div>
-        <p style={{ color: 'var(--texte-discret, #6e6e8a)', margin: 'var(--sp-2) 0 var(--sp-4)' }}>
+        <p style={{ color: 'var(--gris)', margin: 'var(--sp-2) 0 var(--sp-4)' }}>
           Une ligne par personne suivie : identité, contact, programme, date d'enregistrement et statut.
           Le fichier porte l'en-tête ACSF, les filtres et une mise en page prête pour l'impression.
         </p>

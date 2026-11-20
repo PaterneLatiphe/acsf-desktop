@@ -109,7 +109,7 @@ const Agenda: React.FC = () => {
             </select>
           </div>
           {chargement ? (
-            <div className="vide" style={{ boxShadow: 'none' }}>
+            <div className="vide">
               <div className="skel skel-ligne" />
             </div>
           ) : rdvsFiltres.length === 0 ? (
@@ -147,7 +147,7 @@ const Agenda: React.FC = () => {
             Nouveau rendez-vous
             <button type="button" className="lien-bloc" onClick={() => setFormulaireOuvert(true)}>Ouvrir le formulaire →</button>
           </div>
-          <div className="vide" style={{ boxShadow: 'none' }}>
+          <div className="vide">
             <CalendarDays size={40} />
             <b>Pas de rendez-vous en préparation</b>
             Les nouvelles demandes (famille) ou propositions (agence) apparaîtront ici, avec leurs actions de validation.
