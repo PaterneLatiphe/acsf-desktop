@@ -37,8 +37,8 @@ export const DialogueConfirmation: React.FC<DialogueConfirmationProps> = ({
   }, []);
 
   const annuler = useCallback(() => {
-    if (onAnnuler) onAnnuler();
-    else onFermer();
+    onAnnuler?.();
+    onFermer();
   }, [onAnnuler, onFermer]);
 
   const surTouche = (e: React.KeyboardEvent<HTMLDivElement>) => {

@@ -167,6 +167,13 @@ const Volets: React.FC<VoletsProps> = ({ personneId, utilisateur, personne, onCh
     }
   }, [dernierChangement, utilisateur, signaler, afficherToast]);
 
+  // L'édition est déjà écrite en base : abandonner les drapeaux évite un dialogue récurrent.
+  const abandonnerModifications = useCallback(() => {
+    setNouvellesModifications(0);
+    setDernierChangement(null);
+    setDialog(null);
+  }, []);
+
   const chargerSaufStatut = useCallback(async () => {
     signaler('saving');
     try {
@@ -190,18 +197,21 @@ const Volets: React.FC<VoletsProps> = ({ personneId, utilisateur, personne, onCh
         titre: 'Modifications en attente',
         message: `Des modifications ont été saisies. Voulez-vous enregistrer la dernière modification avant de passer au volet ${LIBELLES[suivant] ?? suivant} ?`,
         action: 'Enregistrer',
-        onFermer: () => setDialog(null),
+        onFermer: abandonnerModifications,
         onAction: async () => {
           setDialog(null);
           await enregistrerDerniereModification();
           setVoletActif(suivant);
         },
-        onAnnuler: () => setVoletActif(suivant),
+        onAnnuler: () => {
+          abandonnerModifications();
+          setVoletActif(suivant);
+        },
       });
       return;
     }
     setVoletActif(suivant);
-  }, [nouvellesModifications, enregistrerDerniereModification]);
+  }, [nouvellesModifications, enregistrerDerniereModification, abandonnerModifications]);
 
   const actualiser = useCallback(async () => {
     if (nouvellesModifications > 0) {
@@ -209,17 +219,20 @@ const Volets: React.FC<VoletsProps> = ({ personneId, utilisateur, personne, onCh
         titre: 'Modifications en attente',
         message: 'Des modifications ont été saisies. Voulez-vous enregistrer la dernière modification avant de rafraîchir ?',
         action: 'Enregistrer',
-        onFermer: () => setDialog(null),
+        onFermer: abandonnerModifications,
         onAction: async () => {
           setDialog(null);
           if (await enregistrerDerniereModification()) await chargerSaufStatut();
         },
-        onAnnuler: () => void chargerSaufStatut(),
+        onAnnuler: () => {
+          abandonnerModifications();
+          void chargerSaufStatut();
+        },
       });
       return;
     }
     await chargerSaufStatut();
-  }, [nouvellesModifications, enregistrerDerniereModification, chargerSaufStatut]);
+  }, [nouvellesModifications, enregistrerDerniereModification, chargerSaufStatut, abandonnerModifications]);
 
   // Menu contextuel : focus sur l'action, fermeture par Échap ou clic ailleurs.
   useEffect(() => {
