@@ -1,0 +1,434 @@
+﻿/* ============================================================
+   ACSF Desktop — Système de thème (design tokens)
+   Tout se règle ICI : couleurs, espacements, rayons, ombres.
+   Règle : le jaune (#FFF268) est réservé aux actions importantes
+   (bouton principal, élément actif, badges). Le bleu nuit est
+   l'identité — l'en-tête et le menu latéral.
+   ============================================================ */
+
+@import "@fontsource/inter/400.css";
+@import "@fontsource/inter/600.css";
+@import "@fontsource/inter/700.css";
+@import "@fontsource/inter/800.css";
+
+:root{
+  /* Couleurs — identité ACSF-AFRIQUE */
+  --nuit:#150A54;          /* bleu nuit ACSF */
+  --nuit-clair:#241a66;    /* dérivé, pour survols sombres */
+  --jaune:#FFF268;         /* jaune ACSF — réservé aux actions importantes */
+  --vert:#7AB444;          /* vert Afrique */
+  --brique:#B0390E;        /* rouge brique */
+
+  /* Neutres */
+  --fond:#F6F7FB;          /* fond clair neutre de la zone de travail */
+  --feuille:#ffffff;       /* cartes / feuilles */
+  --plume:#191937;         /* texte principal */
+  --gris:#5D5D78;          /* texte secondaire (≥4.5:1 sur fond clair) */
+  --gris-clair:#5D5D78;    /* libellés discrets — renforcé pour AA/AAA */
+  --ligne:#e7e8f0;         /* séparateurs, hairlines */
+
+  /* Chips colorées (pastilles de stats) */
+  --chip-nuit:#eceafd;     /* fond pastille bleu nuit */
+  --chip-jaune:#fdf6c8;    /* fond pastille jaune */
+  --chip-vert:#ecf7df;     /* fond pastille verte */
+  --chip-brique:#fdeede;   /* fond pastille brique */
+  --chip-bleu:#eef0ff;     /* badge RDV */
+
+  /* Teintes dérivées — surfaces et textes sur fond nuit */
+  --nuit-fond:#211a5e;      /* champ de recherche sur en-tête */
+  --nuit-bord:#3a3370;      /* bordures discrètes sur fond nuit */
+  --nuit-pied:#322c5c;      /* filets du menu latéral */
+  --nuit-kbd-bord:#453e7e;  /* bordure du raccourci clavier */
+  --texte-nuit-doux:#c9c6e8;
+  --texte-nuit-faible:#a9a5cc;
+  --texte-nuit-recherche:#8f8cb8;
+  --texte-nuit-vert:#d8e8c0;
+  --vert-texte:#2f6b1a;
+  --jaune-texte:#7a6a00;
+  --jaune-ombre:#d9d24e;
+  --feuille-chaude:#fdfdf4;
+  --fond-hover:#f4f4fa;
+  --spin-clair:#d9d6ec;
+  --fond-skel:#eceef4;
+  --fond-skel-2:#f4f5f9;
+
+  /* Espacements (marges / gaps réguliers) */
+  --sp-1:4px;  --sp-2:8px;  --sp-3:12px; --sp-4:16px;
+  --sp-5:24px; --sp-6:32px; --sp-7:44px; --sp-8:64px;
+
+  /* Marges autour du contenu */
+  --pad-page:28px;
+  --gap-bloc:20px;
+
+  /* Rayons */
+  --r-sm:8px; --r-md:12px; --r-lg:16px; --r-pill:999px;
+
+  /* Ombres douces (jamais de liseré de couleur en bas des cartes) */
+  --ombre-1:0 1px 2px rgba(21,10,84,.06);
+  --ombre-2:0 1px 2px rgba(21,10,84,.05), 0 8px 24px rgba(21,10,84,.09);
+  --ombre-3:0 2px 4px rgba(21,10,84,.08), 0 16px 40px rgba(21,10,84,.14);
+
+  /* Typographie */
+  --font:"Inter","Segoe UI",Arial,sans-serif;
+  --titre-page:1.55rem;    /* 25px */
+  --titre-bloc:1.02rem;    /* 16px */
+  --corps:.875rem;         /* 14px */
+  --petit:.78rem;          /* 12.5px */
+  --micro:.72rem;          /* 11.5px */
+  --chiffre:2.1rem;        /* 34px — chiffres des stats */
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:var(--font);
+  background:var(--fond);
+  color:var(--plume);
+  font-size:var(--corps);
+  line-height:1.45;
+  -webkit-font-smoothing:antialiased;
+}
+:focus-visible{outline:3px solid var(--nuit);outline-offset:2px;border-radius:6px}
+
+.app{display:flex;height:100vh;overflow:hidden}
+
+/* ========== Menu latéral : pastille arrondie, réductible ========== */
+.side{
+  width:236px;min-width:236px;background:var(--nuit);color:#fff;
+  display:flex;flex-direction:column;padding:0 var(--sp-3) var(--sp-4);
+  gap:2px;transition:width .22s ease,min-width .22s ease;
+}
+.side.collapsed{width:76px;min-width:76px;padding:0 var(--sp-2) var(--sp-4)}
+.logo-block{
+  padding:0 var(--sp-1) var(--sp-4) var(--sp-1);
+  margin:0;
+  border-bottom:1px solid var(--nuit-pied);
+}
+.logo-chip{
+  background:var(--feuille-chaude);
+  border-radius:4px;
+  padding:10px;
+  display:flex;justify-content:center;align-items:center;
+  border:1px solid var(--ligne);
+}
+.logo-chip img{display:block;width:100%;height:auto}
+.side.collapsed .logo-block{padding:0 var(--sp-1) var(--sp-3) var(--sp-1)}
+.side.collapsed .logo-chip{padding:8px}
+.side.collapsed .logo-chip img{width:100%}
+
+.nav{flex:1;display:flex;flex-direction:column;gap:2px}
+.side a,.side .navbtn{
+  display:flex;align-items:center;gap:12px;color:var(--texte-nuit-doux);text-decoration:none;
+  padding:10px 14px;border-radius:6px;font-size:.88rem;min-height:44px;
+  transition:background .15s ease,color .15s ease;white-space:nowrap;overflow:hidden;
+}
+.side a:hover,.side .navbtn:hover{background:var(--nuit-clair);color:#fff}
+.side a.active,.side .navbtn.active{background:var(--jaune);color:var(--nuit);font-weight:700}
+.side a svg,.side .navbtn svg{flex:0 0 20px;color:var(--texte-nuit-faible)}
+.side a.active svg,.side .navbtn.active svg{color:var(--nuit)}
+.side.collapsed a,.side.collapsed .navbtn{justify-content:center;padding:11px 0;gap:0}
+.side.collapsed a span,.side.collapsed .navbtn span{display:none}
+
+.side .navbtn{
+  width:100%;background:transparent;border:none;font-family:inherit;text-align:left;
+  cursor:pointer;color:inherit;
+}
+
+.menu-toggle{
+  display:flex;align-items:center;gap:10px;color:var(--texte-nuit-doux);background:transparent;
+  border:1px solid var(--nuit-bord);border-radius:var(--r-md);padding:9px 12px;cursor:pointer;
+  font-size:.8rem;margin-top:6px;transition:background .18s ease,color .18s ease;
+  min-height:44px;justify-content:flex-start;font-family:inherit;
+}
+.menu-toggle:hover{background:var(--nuit-clair);color:#fff}
+.side.collapsed .menu-toggle{justify-content:center;padding:9px 0}
+.side.collapsed .menu-toggle span{display:none}
+.side .pied{font-size:.65rem;color:var(--texte-nuit-faible);border-top:1px solid var(--nuit-pied);padding-top:var(--sp-3);line-height:1.5}
+.side.collapsed .pied{display:none}
+
+/* ========== En-tête ========== */
+.main{flex:1;display:flex;flex-direction:column;min-width:0}
+.topbar{
+  display:flex;align-items:center;gap:var(--sp-4);background:var(--nuit);color:#fff;
+  padding:0 var(--sp-5);min-height:56px;border-bottom:3px solid var(--jaune);
+}
+.topbar b{font-size:.9rem;color:var(--jaune);letter-spacing:.02em}
+
+/* Recherche rapide */
+.recherche{
+  flex:1;max-width:560px;display:flex;align-items:center;gap:10px;background:var(--nuit-fond);
+  border:1px solid var(--nuit-bord);border-radius:var(--r-pill);padding:8px 16px;margin:0 auto;
+  min-height:44px;transition:border-color .18s ease, box-shadow .18s ease;
+}
+.recherche:focus-within{border-color:var(--jaune);box-shadow:0 0 0 3px rgba(255,242,104,.25)}
+.recherche input{
+  background:transparent;border:none;outline:none;color:#fff;font-size:.9rem;width:100%;
+  font-family:var(--font);
+}
+.recherche input::placeholder{color:var(--texte-nuit-recherche)}
+.recherche kbd{
+  background:var(--nuit-pied);color:var(--texte-nuit-doux);border-radius:6px;font-size:.68rem;padding:2px 7px;
+  border:1px solid var(--nuit-kbd-bord);white-space:nowrap;
+}
+
+.sync{
+  display:flex;align-items:center;gap:8px;font-size:.73rem;color:var(--texte-nuit-vert);
+  background:rgba(122,180,68,.12);border:1px solid rgba(122,180,68,.4);
+  border-radius:var(--r-pill);padding:6px 14px;white-space:nowrap;
+}
+.sync .dot{width:8px;height:8px;border-radius:50%;background:var(--vert)}
+.user{display:flex;align-items:center;gap:10px;font-size:.78rem;color:#fff;white-space:nowrap}
+.user small{color:var(--texte-nuit-doux)}
+.avatar{
+  width:32px;height:32px;border-radius:4px;background:var(--fond);color:var(--nuit);
+  display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.72rem;
+  border:1px solid var(--ligne);
+}
+
+/* ========== Contenu ========== */
+.content{flex:1;padding:var(--sp-5) var(--sp-6);overflow:auto;max-width:794px;margin:0 auto}
+h1.page{color:var(--nuit);font-size:var(--titre-page);font-weight:800;letter-spacing:-.01em}
+.sous-titre{color:var(--gris);font-size:.82rem;margin:4px 0 var(--sp-5)}
+
+/* ========== Cartes statistiques (grandes, chip colorée) ========== */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--gap-bloc);margin-bottom:var(--gap-bloc)}
+.kpi{
+  background:var(--feuille);border-radius:8px;border:1px solid var(--ligne);
+  padding:var(--sp-3);display:flex;flex-direction:column;gap:var(--sp-2);
+}
+.kpi:hover{border-color:var(--nuit)}
+.kpi-tete{display:flex;align-items:center;gap:10px}
+.chip{
+  width:32px;height:32px;border-radius:6px;display:flex;align-items:center;justify-content:center;
+  flex:0 0 32px;
+}
+.kpi:hover .chip{transform:none}
+.chip.nuit{background:var(--chip-nuit);color:var(--nuit)}
+.chip.jaune{background:var(--chip-jaune);color:var(--jaune-texte)}
+.chip.vert{background:var(--chip-vert);color:var(--vert-texte)}
+.chip.brique{background:var(--chip-brique);color:var(--brique)}
+.kpi-label{font-size:.75rem;letter-spacing:.07em;color:var(--gris-clair);text-transform:uppercase;font-weight:600}
+.kpi-chiffre{font-size:var(--chiffre);font-weight:800;color:var(--nuit);letter-spacing:-.02em;line-height:1.05}
+.kpi-var{font-size:.72rem;color:var(--gris)}
+
+/* ========== Blocs utiles (rendez-vous, contributions, activité) ========== */
+.grille{display:grid;grid-template-columns:1.35fr 1fr;gap:var(--gap-bloc);align-items:start}
+.bloc{
+  background:var(--feuille);border-radius:8px;border:1px solid var(--ligne);
+  padding:var(--sp-4);box-shadow:none;
+}
+.bloc-titre{
+  display:flex;align-items:center;justify-content:space-between;gap:var(--sp-3);
+  font-size:var(--titre-bloc);font-weight:700;color:var(--nuit);margin-bottom:var(--sp-3);
+  padding-bottom:var(--sp-2);border-bottom:1px solid var(--ligne);
+}
+.lien-bloc{
+  background:transparent;border:none;font-family:inherit;font-size:.75rem;color:var(--gris);
+  text-decoration:none;font-weight:600;cursor:pointer;min-height:36px;padding:6px 10px;border-radius:8px;
+  white-space:nowrap;
+}
+.lien-bloc:hover{color:var(--nuit);background:var(--fond-hover)}
+.ligne{display:flex;align-items:center;gap:12px;padding:12px 2px;border-bottom:1px solid var(--ligne)}
+.ligne:last-child{border-bottom:none}
+.ligne-point{
+  width:38px;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+  background:var(--chip-nuit);color:var(--nuit);flex:0 0 38px;
+}
+.ligne .info{flex:1;min-width:0}
+.ligne .info b{font-size:.86rem}
+.ligne .info small{color:var(--gris);display:block;font-size:.72rem;margin-top:1px}
+.pill{border-radius:var(--r-pill);font-size:.68rem;padding:4px 13px;font-weight:700;white-space:nowrap}
+.pill.rdv{background:var(--chip-bleu);color:var(--nuit)}
+.pill.ok{background:var(--chip-vert);color:var(--vert-texte)}
+.pill.pend{background:var(--chip-jaune);color:var(--jaune-texte)}
+.pill.ret{background:var(--chip-brique);color:var(--brique)}
+
+/* ========== KPI cliquables ========== */
+.kpi-btn{border:none;font-family:inherit;text-align:left;cursor:pointer;background:var(--feuille)}
+
+/* ========== États vides ========== */
+.vide{
+  background:var(--feuille);border-radius:8px;border:1px solid var(--ligne);
+  text-align:center;padding:var(--sp-5) var(--sp-4);color:var(--gris);
+}
+.vide b{color:var(--nuit);display:block;margin:var(--sp-3) 0 6px;font-size:1.05rem}
+.vide svg{color:var(--texte-nuit-faible)}
+
+/* ========== Boutons ========== */
+.btn{
+  display:inline-flex;align-items:center;gap:10px;border:none;border-radius:6px;
+  padding:10px 18px;font-size:.88rem;font-weight:600;cursor:pointer;font-family:var(--font);
+  transition:background .15s ease;min-height:44px;
+}
+.btn-principal{
+  background:var(--jaune);color:var(--nuit);
+}
+.btn-principal:hover{background:#f0e050}
+.btn-secondaire{background:var(--feuille);color:var(--nuit);border:1px solid var(--ligne)}
+.btn-secondaire:hover{background:var(--fond-hover)}
+
+/* ========== Bandeau de synchro discret ========== */
+.syncbar{
+  display:flex;align-items:center;gap:10px;margin-top:var(--gap-bloc);padding:10px 16px;
+  background:var(--feuille);border:1px solid var(--ligne);border-radius:var(--r-md);
+  color:var(--gris);font-size:.75rem;box-shadow:var(--ombre-1);
+}
+.syncbar .spin{
+  width:14px;height:14px;border-radius:50%;border:2px solid var(--spin-clair);border-top-color:var(--nuit);
+  animation:spin 1.1s linear infinite;flex:0 0 14px;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ========== Toast ========= */
+.toast{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+  background:var(--nuit);color:#fff;border-radius:12px;
+  padding:12px 22px;font-size:.85rem;box-shadow:var(--ombre-3);z-index:50;
+}
+
+/* ========== Squelettes de chargement ========== */
+.skel{
+  background:linear-gradient(90deg,var(--fond-skel) 25%,var(--fond-skel-2) 37%,var(--fond-skel) 63%);
+  background-size:400% 100%;animation:shine 1.3s ease infinite;border-radius:var(--r-md);
+}
+@keyframes shine{0%{background-position:100% 50%}100%{background-position:0 50%}}
+.skel-kpi{height:96px}
+.skel-ligne{height:64px;margin-bottom:10px}
+
+/* ========== Écran Personnes ========== */
+.ligne-btn{
+  width:100%;background:transparent;border:none;font-family:inherit;text-align:left;cursor:pointer;
+  display:flex;align-items:center;gap:12px;padding:10px 8px;border-bottom:1px solid var(--ligne);
+}
+.ligne-btn:last-child{border-bottom:none}
+.ligne-btn:hover{background:var(--fond-hover)}
+.ligne-btn .info{flex:1;min-width:0}
+.ligne-btn .info b{font-size:.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ligne-btn .info small{display:block;font-size:.72rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ligne-btn code{
+  background:var(--chip-nuit);color:var(--nuit);border-radius:6px;padding:2px 8px;font-size:.72rem;
+}
+
+.dossier{
+  position:fixed;inset:0;background:rgba(21,10,84,.45);z-index:40;
+  display:flex;align-items:center;justify-content:center;padding:var(--sp-5);
+}
+.dossier > div,.dossier > form{
+  background:var(--feuille);border-radius:var(--r-lg);box-shadow:var(--ombre-3);
+  width:min(794px,95vw);max-height:95vh;overflow:auto;padding:var(--sp-6);
+}
+.dossier-tete{display:flex;align-items:flex-start;gap:var(--sp-4);margin-bottom:var(--sp-4)}
+.dossier-tete b{color:var(--nuit);font-size:1.1rem;display:block}
+.dossier-tete small{color:var(--gris);display:block;margin-top:4px}
+.dossier-tete .btn{margin-left:auto;flex:0 0 auto}
+.dossier-corps{margin-top:var(--sp-4)}
+.grille-form{display:grid;grid-template-columns:repeat(2,1fr);gap:var(--sp-4)}
+.champ{display:flex;flex-direction:column;gap:6px;font-size:.8rem;color:var(--gris)}
+.champ input,.champ select{
+  height:44px;border:1px solid var(--ligne);border-radius:var(--r-md);padding:0 12px;
+  font-size:.88rem;font-family:inherit;color:var(--plume);background:var(--feuille);
+}
+.champ input:focus,.champ select:focus{border-color:var(--nuit);outline:3px solid rgba(21,10,84,.15);outline-offset:1px}
+
+/* ========== Tableau des personnes (style tableur / export) ========== */
+.tableau-personnes{
+  width:100%;border-collapse:collapse;font-size:.85rem;
+  table-layout:auto;
+}
+.tableau-personnes th{
+  text-align:left;padding:10px 12px;color:var(--nuit);font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;
+  border-bottom:2px solid var(--nuit);background:var(--fond);
+}
+.tableau-personnes td{padding:10px 12px;border-bottom:1px solid var(--ligne);vertical-align:middle}
+.tableau-personnes tbody tr{cursor:pointer}
+.tableau-personnes tbody tr:hover{background:var(--fond-hover)}
+
+/* ========== Tableau volet (fiche à remplir, style tableur) ========== */
+.tableau-volet{
+  width:100%;border-collapse:collapse;font-size:.85rem;
+  table-layout:auto;
+}
+.tableau-volet th{
+  text-align:left;padding:10px 12px;color:var(--nuit);font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;
+  border-bottom:2px solid var(--nuit);background:var(--fond);
+}
+.tableau-volet td{padding:10px 12px;border-bottom:1px solid var(--ligne);vertical-align:middle}
+
+/* ========== Fiche globale (page pleine, style tableur) ========== */
+.fiche-page{
+  display:flex;flex-direction:column;
+  width:100%;height:100%;min-height:0;
+  background:var(--feuille);box-sizing:border-box;
+  padding:0;
+}
+.fiche-page .dossier-tete{
+  display:flex;align-items:center;gap:var(--sp-3);
+  padding:var(--sp-3) var(--sp-4);
+  border-bottom:1px solid var(--ligne);flex-shrink:0;
+}
+.fiche-page .dossier-tete b{font-size:1rem;color:var(--nuit)}
+.fiche-page .dossier-tete small{color:var(--gris);font-size:.78rem}
+.fiche-page .dossier-corps{
+  flex:1;min-height:0;display:flex;flex-direction:column;
+  padding:0;
+  overflow:hidden;
+}
+
+/* Grille AG Grid pleine hauteur */
+.fiche-page .ag-theme-quartz{
+  flex:1;min-height:0;
+  width:100%;
+}
+.fiche-page .ag-theme-quartz .ag-root-wrapper{height:100%}
+
+/* ========== Onglets volets en bas (style feuilles Excel) ========== */
+.volet-tabs-bottom{
+  display:flex;gap:2px;padding:8px 12px 0;
+  background:var(--fond);border-top:1px solid var(--ligne);
+  overflow-x:auto;flex-shrink:0;
+}
+.volet-tab-bottom{
+  display:flex;align-items:center;gap:6px;
+  padding:8px 14px;border-radius:6px 6px 0 0;
+  background:transparent;border:1px solid transparent;border-bottom:none;
+  color:var(--gris);font-size:.8rem;font-weight:600;cursor:pointer;
+  transition:background .15s ease,color .15s ease;
+  min-height:36px;
+}
+.volet-tab-bottom:hover{background:var(--feuille);color:var(--nuit)}
+.volet-tab-bottom.actif{
+  background:var(--feuille);color:var(--nuit);
+  border-color:var(--ligne);border-bottom:1px solid var(--feuille);
+  margin-bottom:-1px;
+}
+.volet-tab-badge{
+  background:var(--chip-nuit);color:var(--nuit);
+  border-radius:999px;padding:1px 7px;font-size:.68rem;font-weight:700;
+}
+
+/* ========== AG Grid thème ACSF ========== */
+.ag-theme-quartz{
+  --ag-background-color: var(--feuille);
+  --ag-header-background-color: var(--fond);
+  --ag-odd-row-background-color: var(--feuille);
+  --ag-row-hover-color: var(--fond-hover);
+  --ag-selected-row-background-color: var(--chip-jaune);
+  --ag-border-color: var(--ligne);
+  --ag-header-foreground-color: var(--nuit);
+  --ag-foreground-color: var(--plume);
+  --ag-font-family: var(--font);
+  --ag-font-size: 13px;
+  --ag-row-height: 38px;
+  --ag-header-height: 38px;
+}
+.ag-theme-quartz .ag-header-cell{font-weight:700}
+.ag-theme-quartz .ag-cell{border-right:1px solid var(--ligne);line-height:1.4}
+
+@media (max-width:900px){
+  .kpis{grid-template-columns:repeat(2,1fr)}
+  .grille{grid-template-columns:1fr}
+  .grille-form{grid-template-columns:1fr}
+  .content{padding:var(--sp-4)}
+  .side{width:76px;min-width:76px;padding:0 var(--sp-2) var(--sp-4)}
+  .side .pied,.side a span,.side .navbtn span,.menu-toggle span{display:none}
+  .side a,.side .navbtn,.menu-toggle{justify-content:center;padding-left:0;padding-right:0}
+}
