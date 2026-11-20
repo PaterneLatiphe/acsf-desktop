@@ -34,6 +34,8 @@ est une décision prise par l'administrateur au moment de valider.
   **En attente de l'agence**.
 - Le bloc **Décisions en attente** présente deux files distinctes, chacune avec son
   compteur : propositions en attente du client et demandes en attente de l'agence.
+- La date et l'heure sont saisies dans deux champs distincts, **Date** et **Heure**
+  (créneaux de 30 minutes), puis enregistrées ensemble dans `date_heure`.
 - Le formulaire « Nouveau rendez-vous » contient un champ **Origine** :
   - « Proposition de l'agence — le client validera » enregistre le statut `propose` ;
   - « Demande du client — l'agence validera » enregistre le statut `demande`.

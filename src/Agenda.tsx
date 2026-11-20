@@ -27,7 +27,15 @@ const ORIGINES: { cle: string; libelle: string; statut: string }[] = [
   { cle: 'demande', libelle: 'Demande du client — l’agence validera', statut: 'demande' },
 ];
 
-const RDV_VIDE = { personneId: '', type: 'rdv_agence', origine: 'proposition', dateHeure: '', notes: '' };
+// Créneaux visibles explicitement : le champ natif `datetime-local` ne montre pas
+// toujours son segment horaire selon le rendu (Electron, navigateur, locale).
+const HEURES = Array.from({ length: 48 }, (_, index) => {
+  const heures = String(Math.floor(index / 2)).padStart(2, '0');
+  const minutes = index % 2 === 0 ? '00' : '30';
+  return { valeur: `${heures}:${minutes}`, libelle: `${heures}:${minutes}` };
+});
+
+const RDV_VIDE = { personneId: '', type: 'rdv_agence', origine: 'proposition', date: '', heure: '', notes: '' };
 
 const Agenda: React.FC = () => {
   const [rdvs, setRdvs] = useState<Rdv[]>([]);
@@ -38,7 +46,8 @@ const Agenda: React.FC = () => {
   const [personneId, setPersonneId] = useState('');
   const [type, setType] = useState('rdv_agence');
   const [origine, setOrigine] = useState('proposition');
-  const [dateHeure, setDateHeure] = useState('');
+  const [date, setDate] = useState('');
+  const [heure, setHeure] = useState('');
   const [notes, setNotes] = useState('');
   const [erreurs, setErreurs] = useState<Record<string, string>>({});
   const [erreurChargement, setErreurChargement] = useState<string | null>(null);
@@ -84,12 +93,13 @@ const Agenda: React.FC = () => {
     e.preventDefault();
     const invalides: Record<string, string> = {};
     if (!personneId) invalides.personneId = 'Choisissez une personne.';
-    if (!dateHeure) invalides.dateHeure = 'Choisissez une date et une heure.';
+    if (!date) invalides.date = 'Choisissez une date.';
+    if (!heure) invalides.heure = 'Choisissez une heure.';
     setErreurs(invalides);
     if (Object.keys(invalides).length > 0) return;
     const origineChoisie = ORIGINES.find((o) => o.cle === origine) ?? ORIGINES[0];
     try {
-      await creerRdv({ personneId: Number(personneId), type, statut: origineChoisie.statut, dateHeure, notes: notes.trim() });
+      await creerRdv({ personneId: Number(personneId), type, statut: origineChoisie.statut, dateHeure: `${date}T${heure}`, notes: notes.trim() });
     } catch {
       afficherToast('Le rendez-vous n’a pas pu être enregistré. Réessayez.');
       return;
@@ -97,7 +107,8 @@ const Agenda: React.FC = () => {
     setFormulaireOuvert(false);
     setPersonneId('');
     setOrigine('proposition');
-    setDateHeure('');
+    setDate('');
+    setHeure('');
     setNotes('');
     setErreurs({});
     await recharger();
@@ -142,13 +153,17 @@ const Agenda: React.FC = () => {
           cle: 'origine', libelle: 'Origine', type: 'select', obligatoire: true,
           options: ORIGINES.map((o) => ({ valeur: o.cle, libelle: o.libelle })),
         },
-        { cle: 'dateHeure', libelle: 'Date et heure', type: 'datetime', obligatoire: true, indications: 'jj/mm/aaaa · hh:mm' },
+        { cle: 'date', libelle: 'Date', type: 'date', obligatoire: true, indications: 'jj/mm/aaaa' },
+        {
+          cle: 'heure', libelle: 'Heure', type: 'select', obligatoire: true,
+          options: [{ valeur: '', libelle: '— Choisir une heure —' }, ...HEURES],
+        },
         { cle: 'notes', libelle: 'Notes', placeholder: 'Sujet, lieu, consignes…' },
       ],
     },
   ], [personnes]);
 
-  const valeursRdv = { personneId, type, origine, dateHeure, notes };
+  const valeursRdv = { personneId, type, origine, date, heure, notes };
 
   const ligneRdv = (r: Rdv) => (
     <div className="ligne" key={r.id}>
@@ -291,7 +306,8 @@ const Agenda: React.FC = () => {
             setPersonneId(valeurs.personneId);
             setType(valeurs.type);
             setOrigine(valeurs.origine);
-            setDateHeure(valeurs.dateHeure);
+            setDate(valeurs.date);
+            setHeure(valeurs.heure);
             setNotes(valeurs.notes);
             if (Object.keys(erreurs).length) setErreurs({});
           }}
