@@ -156,7 +156,7 @@ function valeurAffichee(valeur: unknown, type: TypeColonne | undefined): string 
   return texte;
 }
 
-/** Largeur = contenu le plus long + 3 caractères (marge pour la flèche de filtre). */
+/** Largeur de base = contenu le plus long + 3 caractères (4 de plus ajoutés ensuite). */
 function largeurColonne(colonne: ColonneTableur, lignes: Record<string, unknown>[]): number {
   let max = colonne.libelle.length;
   for (const ligne of lignes) max = Math.max(max, valeurAffichee(ligne[colonne.cle], colonne.type).length);
@@ -260,7 +260,7 @@ function ecrireCellule(cellule: Cell, valeur: unknown, type: TypeColonne | undef
     const d = versDate(valeur);
     if (d) {
       cellule.value = d;
-      cellule.numFmt = 'dd/mm/yyyy';
+      cellule.numFmt = 'dd"/"mm"/"yyyy';
     }
     return;
   }
@@ -292,12 +292,13 @@ function ecrireCellule(cellule: Cell, valeur: unknown, type: TypeColonne | undef
 export function ajouterFeuilleTableur(classeur: Workbook, options: OptionsTableur): Worksheet {
   const colonnes: ColonneTableur[] = [{ cle: '_numero', libelle: 'N°', type: 'nombre', largeur: 7 }, ...options.colonnes];
   const nbColonnes = colonnes.length;
-  // ExcelJS considère la largeur 9 comme sa valeur par défaut et ne l'écrit alors
-  // pas dans <cols> : on l'écarte d'un dixième pour conserver la largeur calculée.
+  // Marge de 4 caractères sur TOUTES les colonnes, dernière comprise, pour que
+  // la flèche du filtre ne masque jamais le texte.
   const largeurs: number[] = [];
   colonnes.forEach((c) => {
-    const calculee = largeurColonne(c, options.lignes);
-    largeurs.push(calculee === 9 ? 9.1 : calculee);
+    const largeur = largeurColonne(c, options.lignes) + 4;
+    // ExcelJS ignore la largeur 9 (valeur par défaut) dans <cols>.
+    largeurs.push(largeur === 9 ? 9.1 : largeur);
   });
 
   const ws = classeur.addWorksheet(options.nomOnglet.slice(0, 31) || 'Export', {
@@ -306,8 +307,6 @@ export function ajouterFeuilleTableur(classeur: Workbook, options: OptionsTableu
       state: 'frozen',
       xSplit: 0,
       ySplit: LIGNE_TITRES,
-      topLeftCell: 'A4',
-      activeCell: 'A4',
       showGridLines: false,
     }],
   });
