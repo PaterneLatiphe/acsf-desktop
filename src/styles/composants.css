@@ -21,7 +21,7 @@
 
 /* Blocs de contenu */
 .grille{display:grid;grid-template-columns:1.35fr 1fr;gap:var(--gap-bloc);align-items:start}
-.bloc{background:var(--feuille);border:1px solid var(--ligne);border-radius:var(--r-lg);box-shadow:var(--ombre-1);padding:var(--sp-5)}
+.bloc{background:var(--feuille);border:1px solid var(--ligne);border-radius:var(--r-lg);box-shadow:var(--ombre-1);padding:var(--sp-5);overflow-x:auto}
 .bloc-titre{
   display:flex;align-items:center;justify-content:space-between;gap:var(--sp-3);
   font-size:var(--titre-bloc);font-weight:700;color:var(--nuit);
@@ -51,6 +51,7 @@
   border:1px solid transparent;background:transparent;font-size:14px;font-weight:600;cursor:pointer;
 }
 .btn:disabled{opacity:.5;cursor:not-allowed}
+.btn:active,.navbtn:active{opacity:.85}
 .btn-principal{background:var(--jaune);color:var(--nuit)}
 .btn-principal:hover{background:var(--jaune-survol)}
 .btn-secondaire{background:var(--feuille);border-color:var(--ligne);color:var(--nuit)}
@@ -97,7 +98,7 @@
 .champ input:focus,.champ select:focus{border-color:var(--nuit);outline:2px solid var(--nuit-15);outline-offset:1px}
 
 /* Tableaux */
-.tableau-personnes,.tableau-volet{width:100%;border-collapse:collapse;font-size:14px;table-layout:auto}
+.tableau-personnes,.tableau-volet{width:100%;min-width:640px;border-collapse:collapse;font-size:14px;table-layout:auto}
 .tableau-personnes th,.tableau-volet th{
   text-align:left;padding:var(--sp-3) var(--sp-4);font-size:var(--micro);font-weight:700;
   text-transform:uppercase;letter-spacing:.05em;color:var(--gris);background:var(--fond);

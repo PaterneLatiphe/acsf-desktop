@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { CalendarDays, UserRoundPlus } from 'lucide-react';
 import { changerStatutRdv, creerRdv, listerPersonnes, listerRdvs, type Personne, type Rdv } from './db';
 import { formaterDateHeureFr } from './format';
+import { Erreur } from './Etats';
 
 const TYPES: { cle: string; libelle: string }[] = [
   { cle: 'rdv_agence', libelle: 'RDV agence' },
@@ -27,14 +28,21 @@ const Agenda: React.FC = () => {
   const [dateHeure, setDateHeure] = useState('');
   const [notes, setNotes] = useState('');
   const [erreur, setErreur] = useState<string | null>(null);
+  const [erreurChargement, setErreurChargement] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
   const recharger = async () => {
     setChargement(true);
-    const [listeRdvs, listePersonnes] = await Promise.all([listerRdvs(), listerPersonnes()]);
-    setRdvs(listeRdvs);
-    setPersonnes(listePersonnes);
-    setChargement(false);
+    try {
+      const [listeRdvs, listePersonnes] = await Promise.all([listerRdvs(), listerPersonnes()]);
+      setRdvs(listeRdvs);
+      setPersonnes(listePersonnes);
+      setErreurChargement(null);
+    } catch {
+      setErreurChargement('L’agenda n’a pas pu être chargé.');
+    } finally {
+      setChargement(false);
+    }
   };
 
   useEffect(() => {
@@ -78,7 +86,7 @@ const Agenda: React.FC = () => {
   const dateAffichee = (r: Rdv): string => formaterDateHeureFr(r.dateHeure);
 
   return (
-    <>
+    <div className="page-enter">
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-3)', flexWrap: 'wrap' }}>
         <div>
           <h1 className="page">Agenda</h1>
@@ -88,6 +96,8 @@ const Agenda: React.FC = () => {
           <UserRoundPlus size={18} /> Nouveau rendez-vous
         </button>
       </div>
+
+      {erreurChargement && <Erreur message={erreurChargement} onRetry={recharger} />}
 
       <div className="grille">
         <div className="bloc">
@@ -201,7 +211,7 @@ const Agenda: React.FC = () => {
       )}
 
       {toast && <div role="status" className="toast">{toast}</div>}
-    </>
+    </div>
   );
 };
 

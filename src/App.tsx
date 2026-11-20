@@ -99,8 +99,9 @@ function App() {
               type="button"
               className={ecran === item.cle ? 'navbtn active' : 'navbtn'}
               aria-current={ecran === item.cle ? 'page' : undefined}
+              aria-label={item.libelle}
               onClick={() => setEcran(item.cle)}
-              title={reduit ? item.libelle : undefined}
+              title={item.libelle}
             >
               {item.icone}<span>{item.libelle}</span>
             </button>

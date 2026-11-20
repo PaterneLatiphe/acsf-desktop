@@ -6,10 +6,13 @@ import { Download, BarChart3 } from 'lucide-react';
 import { listerPersonnes, type Personne } from './db';
 import { dateIso, exporterTableur } from './exportTableur';
 import { UTILISATEUR_COURANT } from './utilisateur';
+import { Erreur } from './Etats';
 
 const Rapports: React.FC = () => {
   const [personnes, setPersonnes] = useState<Personne[]>([]);
   const [chargement, setChargement] = useState(true);
+  const [erreur, setErreur] = useState<string | null>(null);
+  const [tentative, setTentative] = useState(0);
   const [exportEnCours, setExportEnCours] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -18,15 +21,15 @@ const Rapports: React.FC = () => {
     (async () => {
       try {
         const liste = await listerPersonnes();
-        if (actif) setPersonnes(liste);
+        if (actif) { setPersonnes(liste); setErreur(null); }
       } catch {
-        if (actif) setToast('Impossible de charger les données du rapport.');
+        if (actif) setErreur('Les données du rapport n’ont pas pu être chargées.');
       } finally {
         if (actif) setChargement(false);
       }
     })();
     return () => { actif = false; };
-  }, []);
+  }, [tentative]);
 
   const exporter = async () => {
     setExportEnCours(true);
@@ -63,11 +66,14 @@ const Rapports: React.FC = () => {
   const hommes = personnes.filter((p) => p.sexe === 'Masculin').length;
 
   return (
-    <>
+    <div className="page-enter">
       <h1 className="page">Rapports</h1>
       <p className="sous-titre">Synthèses de l'agence, prêtes à imprimer ou à envoyer</p>
 
-      <div className="bloc">
+      {erreur && <Erreur message={erreur} onRetry={() => setTentative((v) => v + 1)} />}
+      {chargement && <div className="bloc" aria-busy="true"><div className="skel skel-ligne" /><div className="skel skel-ligne" /></div>}
+
+      <div className="bloc" style={chargement ? { display: 'none' } : undefined}>
         <div className="bloc-titre">
           <BarChart3 size={18} aria-hidden="true" /> Rapport de suivi des personnes
         </div>
@@ -96,7 +102,7 @@ const Rapports: React.FC = () => {
       </div>
 
       {toast && <div role="status" className="toast">{toast}</div>}
-    </>
+    </div>
   );
 };
 
