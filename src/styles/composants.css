@@ -144,30 +144,36 @@
   --ag-border-color:var(--ligne);--ag-header-foreground-color:var(--nuit);--ag-foreground-color:var(--plume);
   --ag-font-family:var(--font);--ag-font-size:13px;--ag-row-height:40px;--ag-header-height:40px;
 }
+.dossier-page .ag-theme-quartz{--ag-font-size:12px;--ag-row-height:36px;--ag-header-height:36px}
 .ag-theme-quartz .ag-header-cell{font-weight:700}
-.ag-theme-quartz .ag-cell{border-right:1px solid var(--ligne);line-height:1.4}
+.ag-theme-quartz .ag-cell{border-right:1px solid var(--ligne);line-height:1.5}
+.dossier-page .ag-theme-quartz .ag-cell{line-height:1.5}
 
 /* Dossier : hauteur déterminée jusqu'à la grille ; seul le corps de la grille défile. */
 .content:has(.dossier-page){padding:0;overflow:hidden}
-.dossier-page{height:100%;display:flex;flex-direction:column;min-height:0}
+.dossier-page{height:100%;display:flex;flex-direction:column;min-height:0;font-size:12px;line-height:1.5}
+.dossier-page .bloc,.dossier-page .kpi,.dossier-page .evo-tete,.dossier-page .evo-tete span,
+.dossier-page .evo-detail,.dossier-page .passages-recents li span,.dossier-page .passage-resume,
+.dossier-page .passages-recents li b{font-size:12px}
+.dossier-page .bloc{flex:0 0 auto;overflow:visible}
 .dossier-page>.fiche-page{flex:1 1 auto;min-height:0}
 .fiche-page>.dossier-corps{flex:1 1 auto;min-height:0}
 .dossier-colonne{display:flex;flex-direction:column;height:100%;min-height:0}
-.dossier-barre{display:flex;align-items:center;gap:var(--sp-3);flex:0 0 auto;min-height:44px;padding:var(--sp-2) var(--sp-4);border-bottom:1px solid var(--ligne);overflow-x:auto;overflow-y:hidden}
-.dossier-barre .dossier-retour{flex:0 0 auto;min-height:32px;padding:4px 10px;font-size:var(--petit)}
-.bandeau-identite{display:flex;align-items:center;gap:var(--sp-2);flex:0 0 auto;white-space:nowrap}
+.dossier-barre{display:flex;align-items:center;gap:4px;flex:0 0 auto;min-height:38px;padding:2px;border-bottom:1px solid var(--ligne);overflow-x:auto;overflow-y:hidden;font-size:12px}
+.dossier-barre .dossier-retour{flex:0 0 auto;min-height:28px;padding:2px 3px;font-size:11px}
+.bandeau-identite{display:flex;align-items:center;gap:0;flex:0 0 auto;white-space:nowrap}
 .bandeau-identite b{color:var(--nuit)}
-.bandeau-detail{font-size:var(--micro);color:var(--gris)}
-.dossier-titre{display:flex;align-items:baseline;gap:var(--sp-2);flex:0 0 auto;font-size:14px;font-weight:700;color:var(--nuit)}
-.dossier-titre small{font-size:var(--micro);font-weight:400;color:var(--gris)}
-.dossier-barre .actions{display:flex;gap:var(--sp-2);align-items:center;flex:0 0 auto;margin-left:auto}
-.dossier-barre .btn{min-height:34px;padding:var(--sp-1) var(--sp-3);font-size:var(--petit)}
+.bandeau-detail{font-size:12px;color:var(--gris)}
+.dossier-titre{display:flex;align-items:baseline;gap:var(--sp-1);flex:0 0 auto;font-size:12px;font-weight:700;color:var(--nuit)}
+.dossier-titre small{font-size:11px;font-weight:400;color:var(--gris)}
+.dossier-barre .actions{display:flex;gap:4px;align-items:center;flex:0 0 auto;margin-left:auto}
+.dossier-barre .btn{min-height:28px;padding:2px 3px;font-size:12px}
 .dossier-zone{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;overflow:hidden}
 .grille-volet{flex:1 1 auto;height:100%;min-height:320px}
 .fiche-page .grille-volet{min-height:320px}
-@media (max-height:480px){.dossier-barre{min-height:38px;padding:2px var(--sp-3)}.grille-volet,.fiche-page .grille-volet{min-height:0}}
-.volet-tabs-bottom{display:flex;gap:var(--sp-1);padding:var(--sp-2) var(--sp-3) 0;background:var(--fond);border-top:1px solid var(--ligne);overflow-x:auto;flex-shrink:0}
-.volet-tab-bottom{display:flex;align-items:center;gap:var(--sp-2);padding:var(--sp-2) var(--sp-3);border-radius:var(--r-sm) var(--r-sm) 0 0;background:transparent;border:1px solid transparent;border-bottom:none;color:var(--gris);font-size:var(--petit);font-weight:600;cursor:pointer;min-height:36px}
+@media (max-height:480px){.dossier-barre{min-height:34px;padding:1px 2px}.grille-volet,.fiche-page .grille-volet{min-height:0}}
+.volet-tabs-bottom{display:flex;gap:2px;padding:var(--sp-1) var(--sp-2) 0;background:var(--fond);border-top:1px solid var(--ligne);overflow-x:auto;flex-shrink:0;font-size:12px}
+.volet-tab-bottom{display:flex;align-items:center;gap:var(--sp-1);padding:var(--sp-1) var(--sp-2);border-radius:var(--r-sm) var(--r-sm) 0 0;background:transparent;border:1px solid transparent;border-bottom:none;color:var(--gris);font-size:12px;font-weight:600;cursor:pointer;min-height:30px}
 .volet-tab-bottom:hover{background:var(--feuille);color:var(--nuit)}
 .volet-tab-bottom.actif{background:var(--feuille);color:var(--nuit);border-color:var(--ligne);margin-bottom:-1px}
 .volet-tab-badge{background:var(--nuit-08);color:var(--nuit);border-radius:var(--r-pill);padding:1px var(--sp-2);font-size:var(--micro);font-weight:700}
