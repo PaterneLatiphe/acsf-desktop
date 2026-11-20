@@ -94,7 +94,7 @@ export const GrilleVolet: React.FC<GrilleVoletProps> = ({
     sortable: true,
     resizable: true,
     wrapText: true,
-    headerWordWrap: true,
+    wrapHeaderText: true,
     autoHeaderHeight: true,
     cellStyle: { alignItems: 'flex-start', paddingTop: '4px', paddingBottom: '4px' },
     flex: col.type === 'textarea' ? 2.4 : col.type === 'select' ? 1.1 : col.type === 'date' ? 0.55 : 1,

@@ -521,7 +521,7 @@ const Volets: React.FC<VoletsProps> = ({ personneId, utilisateur, personne, onCh
             ))}
           </select>
         </label>
-        <label className="recherche-synth" role="search">
+        <div className="recherche-synth" role="search">
           <input
             type="search"
             value={recherche}
@@ -532,7 +532,7 @@ const Volets: React.FC<VoletsProps> = ({ personneId, utilisateur, personne, onCh
           <button type="button" className="btn btn-secondaire" onClick={() => setRecherche('')} disabled={recherche.trim() === ''}>
             <X size={14} /> Vider la recherche
           </button>
-        </label>
+        </div>
       </div>
 
       <div className="bloc">
