@@ -95,6 +95,19 @@
 .rdv-file-note{margin:0 0 var(--sp-2);font-size:var(--micro);line-height:1.5;color:var(--gris)}
 .rdv-plus{display:flex;margin:var(--sp-3) auto 0}
 
+/* Catalogue d'offres : outils de liste et montant lisible. */
+.offres-outils{display:flex;align-items:center;gap:var(--sp-2);flex-wrap:wrap}
+.offres-outils input,.offres-outils select{
+  min-height:32px;padding:0 var(--sp-2);font-size:12px;
+  border:1px solid var(--ligne);border-radius:var(--r-sm);
+  background:var(--feuille);color:var(--plume);
+}
+.offres-outils input{width:220px;max-width:100%}
+.offre-tarif{
+  font-size:var(--petit);font-weight:700;color:var(--nuit);
+  white-space:nowrap;font-variant-numeric:tabular-nums;
+}
+
 @media (prefers-reduced-motion:reduce){
   .toast,.etat-grille,.statut-donnees{transition:none}
 }

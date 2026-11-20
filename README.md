@@ -42,3 +42,8 @@ utilise le comportement standard du navigateur.
 Les règles de proposition et de validation des rendez-vous (décision côté client ou côté
 agence, APK client, validation directe par l'administrateur) sont décrites dans
 [REGLES-RDV.md](REGLES-RDV.md).
+
+## Offres
+
+Le catalogue des prestations de l'agence (champs, catégories, statuts et comportement de la
+liste) est décrit dans [OFFRES.md](OFFRES.md).

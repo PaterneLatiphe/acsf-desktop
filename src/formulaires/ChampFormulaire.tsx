@@ -2,7 +2,7 @@
 
 import React from 'react';
 
-export type TypeChamp = 'texte' | 'date' | 'datetime' | 'telephone' | 'select';
+export type TypeChamp = 'texte' | 'nombre' | 'date' | 'datetime' | 'telephone' | 'select';
 
 export type OptionChamp = string | { valeur: string; libelle: string };
 
@@ -31,6 +31,7 @@ const formaterTelephone = (valeur: string): string =>
 
 const typeHtml: Record<TypeChamp, string> = {
   texte: 'text',
+  nombre: 'number',
   date: 'date',
   datetime: 'datetime-local',
   telephone: 'tel',
@@ -81,7 +82,7 @@ const ChampFormulaire: React.FC<Props> = ({ champ, valeur, erreur, onChange }) =
             placeholder={champ.placeholder}
             title={type === 'date' ? 'Saisir au format jj/mm/aaaa' : undefined}
             lang={type === 'date' ? 'fr' : undefined}
-            inputMode={type === 'telephone' ? 'numeric' : undefined}
+            inputMode={type === 'telephone' || type === 'nombre' ? 'numeric' : undefined}
             aria-invalid={Boolean(erreur)}
             aria-describedby={erreur ? `erreur-${champ.cle}` : undefined}
             onChange={(e) => modifier(e.target.value)}

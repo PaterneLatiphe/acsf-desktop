@@ -2,7 +2,7 @@
  * db.ts — Couche de données de l'application ACSF Desktop (accès SQLite via sql.js sur le fichier persistant de ./storage).
  *
  * Schéma :
- *  - personnes, passages, volets, consents, contributions_famille, audit_log, echanges, rendezvous, schema_version.
+ *  - personnes, passages, volets, consents, contributions_famille, audit_log, echanges, rendezvous, offres, schema_version.
  *  - passages.id est une chaîne (TEXT PRIMARY KEY, créée avec crypto.randomUUID()).
  *  - Conventions : colonnes snake_case en base, objets camelCase (datePassage, donneesJson, personneId…) à l'API.
  *
@@ -79,6 +79,19 @@ CREATE TABLE IF NOT EXISTS rendezvous(
 );
 CREATE INDEX IF NOT EXISTS idx_rendezvous_personne ON rendezvous(personne_id);
 CREATE INDEX IF NOT EXISTS idx_rendezvous_date_heure ON rendezvous(date_heure);
+
+CREATE TABLE IF NOT EXISTS offres(
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  libelle TEXT NOT NULL,
+  description TEXT,
+  categorie TEXT NOT NULL,
+  tarif INTEGER NOT NULL DEFAULT 0,
+  duree TEXT,
+  active INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_offres_categorie ON offres(categorie);
 
 CREATE TABLE IF NOT EXISTS passages(
   id TEXT PRIMARY KEY,
@@ -387,6 +400,106 @@ export async function creerRdv(donnees: NouveauRdv): Promise<Rdv> {
 export async function changerStatutRdv(id: number, statut: string): Promise<void> {
   const base = await ouvrirBase();
   base.run('UPDATE rendezvous SET statut = ?, updated_at = ? WHERE id = ?', [statut, new Date().toISOString(), id]);
+  await persister();
+}
+
+// ---------- Catalogue d'offres : prestations configurées par l'agence ----------
+export type Offre = {
+  id: number;
+  libelle: string;
+  description: string;
+  categorie: string;
+  tarif: number;
+  duree: string;
+  active: boolean;
+};
+
+export type DonneesOffre = {
+  libelle: string;
+  description: string;
+  categorie: string;
+  tarif: number;
+  duree: string;
+  active: boolean;
+};
+
+function offreEnObjet(colonnes: string[], ligne: unknown[]): Offre {
+  const obj: Record<string, unknown> = {};
+  colonnes.forEach((c, i) => {
+    const camel = c.replace(/_([a-z])/g, (_, ch: string) => ch.toUpperCase());
+    obj[camel] = ligne[i];
+  });
+  return {
+    id: Number(obj.id),
+    libelle: String(obj.libelle ?? ''),
+    description: String(obj.description ?? ''),
+    categorie: String(obj.categorie ?? ''),
+    tarif: Number(obj.tarif ?? 0),
+    duree: String(obj.duree ?? ''),
+    active: Number(obj.active ?? 0) === 1,
+  };
+}
+
+function validerDonneesOffre(donnees: DonneesOffre): DonneesOffre {
+  const libelle = String(donnees.libelle ?? '').trim();
+  const categorie = String(donnees.categorie ?? '').trim();
+  if (!libelle) throw new Error('Une offre doit avoir un libellé.');
+  if (!categorie) throw new Error('Une offre doit avoir une catégorie.');
+  const tarif = Number(donnees.tarif);
+  if (!Number.isFinite(tarif) || !Number.isInteger(tarif) || tarif < 0) {
+    throw new Error('Le tarif doit être un montant entier positif.');
+  }
+  return {
+    libelle,
+    categorie,
+    tarif,
+    description: String(donnees.description ?? '').trim(),
+    duree: String(donnees.duree ?? '').trim(),
+    active: Boolean(donnees.active),
+  };
+}
+
+export async function listerOffres(): Promise<Offre[]> {
+  const base = await ouvrirBase();
+  const resultat = base.exec('SELECT * FROM offres ORDER BY categorie, libelle');
+  if (!resultat.length) return [];
+  return resultat[0].values.map((ligne) => offreEnObjet(resultat[0].columns, ligne));
+}
+
+export async function creerOffre(donnees: DonneesOffre): Promise<Offre> {
+  const base = await ouvrirBase();
+  const valides = validerDonneesOffre(donnees);
+  const maintenant = new Date().toISOString();
+  base.run(
+    `INSERT INTO offres (libelle, description, categorie, tarif, duree, active, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [valides.libelle, valides.description, valides.categorie, valides.tarif, valides.duree,
+      valides.active ? 1 : 0, maintenant, maintenant],
+  );
+  await persister();
+  const identifiant = base.exec('SELECT last_insert_rowid()');
+  const id = Number(identifiant[0]?.values[0]?.[0] ?? 0);
+  const offres = await listerOffres();
+  const creee = offres.find((offre) => offre.id === id);
+  if (!creee) throw new Error('L’offre n’a pas pu être relue après enregistrement.');
+  return creee;
+}
+
+export async function modifierOffre(id: number, donnees: DonneesOffre): Promise<void> {
+  const base = await ouvrirBase();
+  const valides = validerDonneesOffre(donnees);
+  base.run(
+    `UPDATE offres SET libelle = ?, description = ?, categorie = ?, tarif = ?, duree = ?, active = ?, updated_at = ?
+     WHERE id = ?`,
+    [valides.libelle, valides.description, valides.categorie, valides.tarif, valides.duree,
+      valides.active ? 1 : 0, new Date().toISOString(), id],
+  );
+  await persister();
+}
+
+export async function definirOffreActive(id: number, active: boolean): Promise<void> {
+  const base = await ouvrirBase();
+  base.run('UPDATE offres SET active = ?, updated_at = ? WHERE id = ?', [active ? 1 : 0, new Date().toISOString(), id]);
   await persister();
 }
 

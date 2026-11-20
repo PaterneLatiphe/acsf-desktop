@@ -8,6 +8,7 @@ import {
 import logoAcsf from './assets/acsf-logo-signe.png';
 import Personnes from './Personnes';
 import Agenda from './Agenda';
+import Offres from './Offres';
 import Rapports from './Rapports';
 import TableauDeBord from './TableauDeBord';
 import { Squelettes, IllustrationVide } from './Etats';
@@ -82,6 +83,7 @@ function App() {
         return <TableauDeBord onCreer={() => setEcran('personnes')} onNaviguer={setEcran} />;
       case 'personnes': return <Personnes />;
       case 'agenda': return <Agenda />;
+      case 'suivi': return <Offres />;
       case 'rapports': return <Rapports />;
       default:
         return (
