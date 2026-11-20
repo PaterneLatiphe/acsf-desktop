@@ -9,6 +9,7 @@ export interface DialogueConfirmationProps {
   onAction: () => void;
   onAnnuler?: () => void;
   onFermer: () => void;
+  focusRetour?: HTMLElement | null;
 }
 
 export const DialogueConfirmation: React.FC<DialogueConfirmationProps> = ({
@@ -18,15 +19,21 @@ export const DialogueConfirmation: React.FC<DialogueConfirmationProps> = ({
   onAction,
   onAnnuler,
   onFermer,
+  focusRetour,
 }) => {
   const modalRef = useRef<HTMLDivElement>(null);
   const boutonActionRef = useRef<HTMLButtonElement>(null);
   const focusInitialRef = useRef<HTMLElement | null>(null);
+  const focusRetourRef = useRef(focusRetour);
+  focusRetourRef.current = focusRetour;
 
   useEffect(() => {
     focusInitialRef.current = document.activeElement as HTMLElement | null;
     boutonActionRef.current?.focus();
-    return () => focusInitialRef.current?.focus?.();
+    return () => {
+      const cible = focusRetourRef.current ?? focusInitialRef.current;
+      if (cible?.isConnected) cible.focus?.();
+    };
   }, []);
 
   const annuler = useCallback(() => {

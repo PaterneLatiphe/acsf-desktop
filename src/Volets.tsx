@@ -56,6 +56,7 @@ type DialogConfirm = {
   onAction: () => void;
   onAnnuler?: () => void;
   onFermer: () => void;
+  focusRetour?: HTMLElement | null;
 };
 type EvolutionRecent = { id: string; cle: string; date: string; label: string; detail: string };
 
@@ -113,6 +114,7 @@ const Volets: React.FC<VoletsProps> = ({ personneId, utilisateur, personne, onCh
   const statutTimerRef = useRef<number | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const menuBoutonRef = useRef<HTMLButtonElement>(null);
+  const focusAvantMenuRef = useRef<HTMLElement | null>(null);
 
   const afficherToast = useCallback((message: string) => {
     setToast(message);
@@ -388,6 +390,7 @@ const Volets: React.FC<VoletsProps> = ({ personneId, utilisateur, personne, onCh
       message: 'Cette suppression est tracée dans l’historique.',
       action: 'Supprimer',
       onFermer: () => setDialog(null),
+      focusRetour: focusAvantMenuRef.current,
       onAction: async () => {
         setDialog(null);
         signaler('saving');
@@ -411,6 +414,8 @@ const Volets: React.FC<VoletsProps> = ({ personneId, utilisateur, personne, onCh
   const onCellContextMenu = useCallback((event: any) => {
     if (!event.data?._id) return;
     event.event?.preventDefault?.();
+    focusAvantMenuRef.current = (event.event?.target as HTMLElement | null)
+      ?? (document.activeElement as HTMLElement | null);
     setMenu({ x: event.event?.clientX ?? 0, y: event.event?.clientY ?? 0, id: event.data._id });
   }, []);
 
@@ -702,6 +707,7 @@ const Volets: React.FC<VoletsProps> = ({ personneId, utilisateur, personne, onCh
           onAction={dialog.onAction}
           onAnnuler={dialog.onAnnuler}
           onFermer={dialog.onFermer}
+          focusRetour={dialog.focusRetour}
         />
       )}
 

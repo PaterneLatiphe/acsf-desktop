@@ -167,6 +167,7 @@ export const GrilleVolet: React.FC<GrilleVoletProps> = ({
       event: {
         clientX: rect?.left ?? 0,
         clientY: rect?.bottom ?? 0,
+        target: touche.target,
         preventDefault: () => touche.preventDefault?.(),
       },
     });
