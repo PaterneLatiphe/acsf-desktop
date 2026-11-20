@@ -6,6 +6,7 @@ import { AgGridReact } from 'ag-grid-react';
 import { ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-quartz.css';
+import { GrilleVide } from './EtatDonnees';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
@@ -21,6 +22,7 @@ export interface GrilleVoletProps {
   passages: any[];
   colonnes: ColonneVolet[];
   libelle?: string;
+  messageVide?: string;
   onCellValueChanged?: (event: any) => void;
   onGridReady?: (params: any) => void;
   onGridDetached?: () => void;
@@ -76,6 +78,7 @@ export const GrilleVolet: React.FC<GrilleVoletProps> = ({
   passages,
   colonnes,
   libelle = 'volet',
+  messageVide,
   onCellValueChanged,
   onGridReady,
   onGridDetached,
@@ -221,6 +224,8 @@ export const GrilleVolet: React.FC<GrilleVoletProps> = ({
         undoRedoCellEditingLimit={20}
         stopEditingWhenCellsLoseFocus={true}
         rowSelection={{ mode: 'singleRow', checkboxes: false, enableClickSelection: true }}
+        noRowsOverlayComponent={GrilleVide}
+        noRowsOverlayComponentParams={{ message: messageVide }}
         animateRows={false}
         domLayout="normal"
         theme="legacy"

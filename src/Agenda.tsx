@@ -3,6 +3,8 @@ import { CalendarDays, UserRoundPlus } from 'lucide-react';
 import { changerStatutRdv, creerRdv, listerPersonnes, listerRdvs, type Personne, type Rdv } from './db';
 import { formaterDateHeureFr } from './format';
 import { Erreur } from './Etats';
+import { Toast } from './EtatDonnees';
+import { useToast } from './useToast';
 import FormulaireCadre, { type SectionFormulaire } from './formulaires/FormulaireCadre';
 
 const TYPES: { cle: string; libelle: string }[] = [
@@ -32,7 +34,7 @@ const Agenda: React.FC = () => {
   const [notes, setNotes] = useState('');
   const [erreurs, setErreurs] = useState<Record<string, string>>({});
   const [erreurChargement, setErreurChargement] = useState<string | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
+  const { toast, afficherToast, mettreEnPause, reprendre } = useToast();
 
   const recharger = async () => {
     setChargement(true);
@@ -73,8 +75,7 @@ const Agenda: React.FC = () => {
     setNotes('');
     setErreurs({});
     await recharger();
-    setToast('Rendez-vous enregistré.');
-    window.setTimeout(() => setToast(null), 2600);
+    afficherToast('Rendez-vous enregistré.');
   };
 
   const changer = async (id: number, statut: string) => {
@@ -207,7 +208,7 @@ const Agenda: React.FC = () => {
         />
       )}
 
-      {toast && <div role="status" className="toast">{toast}</div>}
+      {toast && <Toast message={toast} onPause={mettreEnPause} onReprendre={reprendre} />}
     </div>
   );
 };

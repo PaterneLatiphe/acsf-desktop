@@ -7,6 +7,8 @@ import { listerPersonnes, type Personne } from './db';
 import { dateIso, exporterTableur } from './exportTableur';
 import { UTILISATEUR_COURANT } from './utilisateur';
 import { Erreur } from './Etats';
+import { Toast } from './EtatDonnees';
+import { useToast } from './useToast';
 
 const Rapports: React.FC = () => {
   const [personnes, setPersonnes] = useState<Personne[]>([]);
@@ -14,7 +16,7 @@ const Rapports: React.FC = () => {
   const [erreur, setErreur] = useState<string | null>(null);
   const [tentative, setTentative] = useState(0);
   const [exportEnCours, setExportEnCours] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
+  const { toast, afficherToast, mettreEnPause, reprendre } = useToast();
 
   useEffect(() => {
     let actif = true;
@@ -52,11 +54,9 @@ const Rapports: React.FC = () => {
         exportePar: UTILISATEUR_COURANT,
         libelleTotal: `Total : ${personnes.length} personnes`,
       }, UTILISATEUR_COURANT, `ACSF_Rapport-suivi_${dateIso()}.xlsx`);
-      setToast('Rapport Excel généré.');
-      window.setTimeout(() => setToast(null), 2600);
+      afficherToast('Rapport Excel généré.');
     } catch {
-      setToast('Le rapport n’a pas pu être généré.');
-      window.setTimeout(() => setToast(null), 4000);
+      afficherToast('Le rapport n’a pas pu être généré.', 4000);
     } finally {
       setExportEnCours(false);
     }
@@ -101,7 +101,7 @@ const Rapports: React.FC = () => {
         )}
       </div>
 
-      {toast && <div role="status" className="toast">{toast}</div>}
+      {toast && <Toast message={toast} onPause={mettreEnPause} onReprendre={reprendre} />}
     </div>
   );
 };

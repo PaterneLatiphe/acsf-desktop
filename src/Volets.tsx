@@ -9,6 +9,8 @@ import { VOLET_COLONNES } from './voletsConfig/voletsConfig';
 import { OngletsVolets } from './OngletsVolets';
 import { BandeauIdentite } from './BandeauIdentite';
 import { GrilleVolet } from './GrilleVolet';
+import { Toast } from './EtatDonnees';
+import { useToast } from './useToast';
 import { DialogueConfirmation, type DialogueConfirmationProps } from './DialogueConfirmation';
 import { exporterExcel } from './exportExcel';
 import {
@@ -95,7 +97,6 @@ const Volets: React.FC<VoletsProps> = ({ personneId, utilisateur, personne, onCh
   const [consentementSpirituel, setConsentementSpirituel] = useState<Consent | null>(null);
   const [echanges, setEchanges] = useState<Echange[]>([]);
   const [statut, setStatut] = useState<Statut>('idle');
-  const [toast, setToast] = useState<string | null>(null);
   const [menu, setMenu] = useState<{ x: number; y: number; id: string } | null>(null);
   const [dialog, setDialog] = useState<DialogConfirm | null>(null);
   const [filtreSynthese, setFiltreSynthese] = useState('tous');
@@ -108,10 +109,7 @@ const Volets: React.FC<VoletsProps> = ({ personneId, utilisateur, personne, onCh
   const menuBoutonRef = useRef<HTMLButtonElement>(null);
   const focusAvantMenuRef = useRef<HTMLElement | null>(null);
 
-  const afficherToast = useCallback((message: string) => {
-    setToast(message);
-    window.setTimeout(() => setToast(null), 2600);
-  }, []);
+  const { toast, afficherToast, mettreEnPause, reprendre } = useToast();
 
   const signaler = useCallback((nouveau: Statut) => {
     setStatut(nouveau);
@@ -719,7 +717,7 @@ const Volets: React.FC<VoletsProps> = ({ personneId, utilisateur, personne, onCh
 
       {dialog && <DialogueConfirmation {...dialog} />}
 
-      {toast && <div role="status" className="toast">{toast}</div>}
+      {toast && <Toast message={toast} onPause={mettreEnPause} onReprendre={reprendre} />}
     </div>
   );
 };

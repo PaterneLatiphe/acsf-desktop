@@ -4,6 +4,7 @@ import ReactDOM from 'react-dom/client';
 import './styles/tokens.css';
 import './styles/base.css';
 import './styles/composants.css';
+import './styles/accessibilite.css';
 import App from './App';
 import { FiletErreur } from './Etats';
 

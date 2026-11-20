@@ -5,7 +5,9 @@ import { UserRoundPlus, Download } from 'lucide-react';
 import { creerPersonne, listerPersonnes, type Personne } from './db';
 import { dateIso, exporterTableur } from './exportTableur';
 import { UTILISATEUR_COURANT } from './utilisateur';
-import { Erreur, IllustrationVide } from './Etats';
+import { Erreur } from './Etats';
+import { EtatVide, StatutDonnees, Toast } from './EtatDonnees';
+import { useToast } from './useToast';
 import Volets from './Volets';
 import FormulairePersonne, { VIDE, type Formulaire } from './personnes/FormulairePersonne';
 import ListePersonnes from './personnes/ListePersonnes';
@@ -19,7 +21,7 @@ const Personnes: React.FC<{ onChanger?: () => void }> = ({ onChanger }) => {
   const [formulaire, setFormulaire] = useState<Formulaire>(VIDE);
   const [erreurs, setErreurs] = useState<Formulaire>({});
   const [selection, setSelection] = useState<Personne | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
+  const { toast, afficherToast, mettreEnPause, reprendre } = useToast();
 
   const recharger = async () => {
     setChargement(true);
@@ -70,8 +72,7 @@ const Personnes: React.FC<{ onChanger?: () => void }> = ({ onChanger }) => {
     setFormulaireOuvert(false);
     await recharger();
     onChanger?.();
-    setToast('Personne enregistrée dans la base locale.');
-    window.setTimeout(() => setToast(null), 2600);
+    afficherToast('Personne enregistrée dans la base locale.');
   };
 
   const exporterExcelPersonnes = async (liste: Personne[]) => {
@@ -92,8 +93,7 @@ const Personnes: React.FC<{ onChanger?: () => void }> = ({ onChanger }) => {
       filtres: requete.trim() ? `recherche « ${requete.trim()} »` : '',
       libelleTotal: `Total : ${liste.length} personnes`,
     }, UTILISATEUR_COURANT, `ACSF_Liste-personnes_${dateIso()}.xlsx`);
-    setToast('Export Excel généré.');
-    window.setTimeout(() => setToast(null), 2600);
+    afficherToast('Export Excel généré.');
   };
 
   if (selection) {
@@ -110,7 +110,7 @@ const Personnes: React.FC<{ onChanger?: () => void }> = ({ onChanger }) => {
             />
           </div>
         </div>
-        {toast && <div role="status" className="toast">{toast}</div>}
+        {toast && <Toast message={toast} onPause={mettreEnPause} onReprendre={reprendre} />}
       </div>
     );
   }
@@ -132,7 +132,7 @@ const Personnes: React.FC<{ onChanger?: () => void }> = ({ onChanger }) => {
         </div>
       </div>
 
-      <label className="recherche" style={{ maxWidth: 520, margin: 'var(--sp-5) 0', background: 'var(--feuille)' }}>
+      <div className="recherche" role="search" style={{ maxWidth: 520, margin: 'var(--sp-5) 0', background: 'var(--feuille)' }}>
         <input
           type="text"
           value={requete}
@@ -140,19 +140,34 @@ const Personnes: React.FC<{ onChanger?: () => void }> = ({ onChanger }) => {
           placeholder="Rechercher : nom, prénom, téléphone, code…"
           aria-label="Rechercher une personne"
         />
-      </label>
+        <button
+          type="button"
+          className="recherche-effacer"
+          onClick={() => setRequete('')}
+          disabled={requete.trim() === ''}
+          aria-label="Effacer la recherche"
+        >
+          Effacer
+        </button>
+      </div>
+
+      {!chargement && !erreurChargement && (
+        <StatutDonnees affiches={resultats.length} total={personnes.length} />
+      )}
 
       {erreurChargement && <Erreur message={erreurChargement} onRetry={recharger} />}
       {chargement ? (
         <div className="grille"><div className="bloc"><div className="skel skel-ligne" /><div className="skel skel-ligne" /></div></div>
       ) : resultats.length === 0 ? (
-        <div className="vide">
-          <IllustrationVide />
-          <b>{requete ? 'Aucune personne ne correspond à la recherche.' : 'Aucune personne enregistrée.'}</b>
-          {requete
+        <EtatVide
+          titre={requete ? 'Aucune personne ne correspond à la recherche.' : 'Aucune personne enregistrée.'}
+          message={requete
             ? 'Essayez un autre nom, prénom, téléphone ou code.'
             : 'Utilisez « Nouvelle personne » pour créer la première fiche.'}
-        </div>
+          action={requete
+            ? { libelle: 'Effacer la recherche', onClick: () => setRequete('') }
+            : { libelle: 'Nouvelle personne', onClick: ouvrirFormulaire }}
+        />
       ) : (
         <ListePersonnes personnes={resultats} surSelection={setSelection} />
       )}
@@ -166,7 +181,7 @@ const Personnes: React.FC<{ onChanger?: () => void }> = ({ onChanger }) => {
           onEnregistrer={enregistrer}
         />
       )}
-      {toast && <div role="status" className="toast">{toast}</div>}
+      {toast && <Toast message={toast} onPause={mettreEnPause} onReprendre={reprendre} />}
     </div>
   );
 };

@@ -1,0 +1,40 @@
+/* Couche additive d'accessibilité : importée après composants.css.
+   Aucune règle existante n'est écrasée ; seuls les nouveaux états sont stylés. */
+
+/* Overlay « aucune ligne » de la grille : phrase courte + une seule indication. */
+.etat-grille{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:var(--sp-2);min-height:120px;padding:var(--sp-4);text-align:center;
+  color:var(--gris);font-size:12px;line-height:1.5;
+}
+.etat-grille b{color:var(--nuit);font-size:12px}
+.etat-grille span{max-width:38ch}
+.etat-action{margin-top:var(--sp-3);display:flex;justify-content:center}
+
+/* Compteur de résultats : toujours en texte, jamais seulement par la couleur. */
+.statut-donnees{
+  display:flex;align-items:center;gap:var(--sp-2);
+  font-size:var(--petit);color:var(--gris);line-height:1.5;
+}
+.statut-donnees .btn{min-height:28px}
+
+/* Message éphémère : focus visible, cible clavier stable. */
+.toast{display:flex;align-items:center;gap:var(--sp-3)}
+.toast:focus-visible{outline:2px solid var(--jaune);outline-offset:2px}
+
+/* Recherche : bouton « Effacer » nommé, visible, sans réduire la saisie. */
+.recherche-effacer{
+  flex:0 0 auto;min-height:28px;padding:2px var(--sp-2);
+  background:var(--feuille);border:1px solid var(--ligne);border-radius:var(--r-sm);
+  color:var(--gris);font-size:var(--micro);font-weight:600;cursor:pointer;white-space:nowrap;
+}
+.recherche-effacer:hover:not(:disabled){background:var(--fond);color:var(--nuit);border-color:var(--gris-clair)}
+.recherche-effacer:disabled{opacity:.45;cursor:default}
+.recherche-effacer:focus-visible{outline:2px solid var(--nuit);outline-offset:2px}
+
+/* Bandeau de sauvegarde : le texte porte le sens, l'icône ne fait que renforcer. */
+.etat-sauvegarde{display:inline-flex;align-items:center;gap:var(--sp-1);font-size:var(--petit)}
+
+@media (prefers-reduced-motion:reduce){
+  .toast,.etat-grille,.statut-donnees{transition:none}
+}

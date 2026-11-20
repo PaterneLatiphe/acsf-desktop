@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   LayoutDashboard, Users, CalendarDays, NotebookPen, Tag, BarChart3,
-  Search, PanelLeftClose, PanelLeftOpen, Check,
+  Search, PanelLeftClose, PanelLeftOpen, Check, WifiOff,
 } from 'lucide-react';
 import logoAcsf from './assets/acsf-logo-signe.png';
 import Personnes from './Personnes';
@@ -38,7 +38,20 @@ function App() {
   const [ecran, setEcran] = useState<Ecran>('tableau');
   const [chargement, setChargement] = useState(true);
   const [reduit, setReduit] = useState<boolean>(lirePreference);
+  const [rechercheRapide, setRechercheRapide] = useState('');
+  const [enLigne, setEnLigne] = useState(() => (typeof navigator === 'undefined' ? true : navigator.onLine));
   const rechercheRef = useRef<HTMLInputElement>(null);
+
+  // Lecture seule de l'état réseau du navigateur : aucun état métier n'est modifié.
+  useEffect(() => {
+    const mettreAJour = () => setEnLigne(navigator.onLine);
+    window.addEventListener('online', mettreAJour);
+    window.addEventListener('offline', mettreAJour);
+    return () => {
+      window.removeEventListener('online', mettreAJour);
+      window.removeEventListener('offline', mettreAJour);
+    };
+  }, []);
 
   useEffect(() => {
     const t = window.setTimeout(() => setChargement(false), 500);
@@ -123,14 +136,34 @@ function App() {
 
       <div className="main">
         <header className="topbar">
-          <label className="recherche">
+          <div className="recherche" role="search">
             <Search size={17} aria-hidden="true" />
-            <input ref={rechercheRef} type="text" placeholder="Rechercher une personne, un rendez-vous…" aria-label="Recherche rapide" />
+            <input
+              ref={rechercheRef}
+              id="recherche-rapide"
+              type="text"
+              value={rechercheRapide}
+              onChange={(e) => setRechercheRapide(e.target.value)}
+              placeholder="Rechercher une personne, un rendez-vous…"
+              aria-label="Recherche rapide"
+            />
+            <button
+              type="button"
+              className="recherche-effacer"
+              onClick={() => setRechercheRapide('')}
+              disabled={rechercheRapide.trim() === ''}
+              aria-label="Effacer la recherche rapide"
+            >
+              Effacer
+            </button>
             <kbd>Ctrl K</kbd>
-          </label>
+          </div>
           <div className="topbar-droite">
             <span className="etat-base"><span className="dot" aria-hidden="true" />Base locale</span>
-            <span className="etat-sauvegarde"><Check size={14} aria-hidden="true" /> Enregistré</span>
+            <span className="etat-sauvegarde" role="status" aria-live="polite">
+              {enLigne ? <Check size={14} aria-hidden="true" /> : <WifiOff size={14} aria-hidden="true" />}
+              {' '}{enLigne ? 'Tout est enregistré' : 'Hors ligne — données conservées sur cet appareil'}
+            </span>
             <div className="user">
               <div className="avatar" aria-hidden="true">{initiales}</div>
               <span>{UTILISATEUR.nom}<small>{UTILISATEUR.role}</small></span>
