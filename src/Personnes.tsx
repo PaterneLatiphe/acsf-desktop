@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { UserRoundPlus, X, Download } from 'lucide-react';
 import { creerPersonne, listerPersonnes, type Personne } from './db';
+import { dateIso, exporterTableur } from './exportTableur';
+import { UTILISATEUR_COURANT } from './utilisateur';
 import Volets from './Volets';
 
 type Champ = {
@@ -97,22 +99,26 @@ const Personnes: React.FC<{ onChanger?: () => void }> = ({ onChanger }) => {
     window.setTimeout(() => setToast(null), 2600);
   };
 
-  const exporterCSV = (liste: Personne[]) => {
-    const enTete = ['Prénom', 'Nom', 'Sexe', 'Date de naissance', 'Téléphone', 'Adresse', 'Langue', 'Programme', 'Code', 'Statut'];
-    const lignes = liste.map((p) => [
-      p.prenom ?? '', p.nom ?? '', p.sexe ?? '', p.dateNaissance ?? '', p.telephone ?? '',
-      p.adresse ?? '', p.langue ?? '', p.programme ?? '', p.code ?? '', p.statut ?? '',
-    ]);
-    const corps = [enTete, ...lignes].map((l) => l.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(';')).join('\n');
-    const blob = new Blob([corps], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const lien = document.createElement('a');
-    lien.href = url;
-    lien.download = `acsf-personnes-${new Date().toISOString().slice(0, 10)}.csv`;
-    document.body.appendChild(lien);
-    lien.click();
-    lien.remove();
-    URL.revokeObjectURL(url);
+  const exporterExcelPersonnes = async (liste: Personne[]) => {
+    await exporterTableur({
+      titre: 'LISTE DES PERSONNES SUIVIES',
+      nomOnglet: 'Personnes',
+      colonnes: [
+        { cle: 'nom', libelle: 'Nom', type: 'texte' },
+        { cle: 'prenom', libelle: 'Prénom', type: 'texte' },
+        { cle: 'sexe', libelle: 'Sexe', type: 'texte' },
+        { cle: 'dateNaissance', libelle: 'Date de naissance', type: 'date' },
+        { cle: 'telephone', libelle: 'Téléphone', type: 'telephone' },
+        { cle: 'programme', libelle: 'Programme', type: 'texte' },
+        { cle: 'statut', libelle: 'Statut', type: 'statut' },
+      ],
+      lignes: liste.map((p) => ({ ...p, statut: p.statut === 'suivie' ? 'SUIVI' : String(p.statut || '').toUpperCase() })),
+      exportePar: UTILISATEUR_COURANT,
+      filtres: requete.trim() ? `recherche « ${requete.trim()} »` : '',
+      libelleTotal: `Total : ${liste.length} personnes`,
+    }, UTILISATEUR_COURANT, `ACSF_Liste-personnes_${dateIso()}.xlsx`);
+    setToast('Export Excel généré.');
+    window.setTimeout(() => setToast(null), 2600);
   };
 
   if (selection) {
@@ -132,7 +138,7 @@ const Personnes: React.FC<{ onChanger?: () => void }> = ({ onChanger }) => {
         </div>
         <div className="fiche-page">
           <div className="dossier-corps">
-            <Volets personneId={selection.id} utilisateur="Awa Koné" personne={selection} onChanger={recharger} />
+            <Volets personneId={selection.id} utilisateur={UTILISATEUR_COURANT} personne={selection} onChanger={recharger} />
           </div>
         </div>
         {toast && <div role="status" className="toast">{toast}</div>}
@@ -148,7 +154,7 @@ const Personnes: React.FC<{ onChanger?: () => void }> = ({ onChanger }) => {
           <p className="sous-titre">Base de données des personnes suivies par l'agence</p>
         </div>
         <div style={{ display: 'flex', gap: 'var(--sp-3)', marginLeft: 'auto', flexWrap: 'wrap' }}>
-          <button type="button" className="btn btn-secondaire" onClick={() => exporterCSV(resultats)} disabled={resultats.length === 0}>
+          <button type="button" className="btn btn-secondaire" onClick={() => exporterExcelPersonnes(resultats)} disabled={resultats.length === 0}>
             <Download size={18} /> Exporter
           </button>
           <button type="button" className="btn btn-principal" onClick={ouvrirFormulaire}>

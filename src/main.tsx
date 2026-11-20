@@ -17,6 +17,8 @@ import logoAcsf from './assets/acsf-logo-signe.png';
 import './charte.css';
 import Personnes from './Personnes';
 import Agenda from './Agenda';
+import Rapports from './Rapports';
+import { listerPersonnes, listerRdvs } from './db';
 
 type Ecran =
   | 'tableau'
@@ -68,7 +70,30 @@ const IllustrationVide: React.FC = () => (
   </svg>
 );
 
-const TableauDeBord: React.FC<{ onCreer: () => void; onNaviguer: (e: Ecran) => void }> = ({ onCreer, onNaviguer }) => (
+const TableauDeBord: React.FC<{ onCreer: () => void; onNaviguer: (e: Ecran) => void }> = ({ onCreer, onNaviguer }) => {
+  const [stats, setStats] = useState({ personnes: 0, parrainages: 0, rdvsSemaine: 0, contributions: 0 });
+  useEffect(() => {
+    let actif = true;
+    (async () => {
+      try {
+        const personnes = await listerPersonnes();
+        const rdvs = await listerRdvs();
+        // Semaine calendaire en cours (lundi 00:00 → lundi suivant).
+        const lundi = new Date();
+        lundi.setHours(0, 0, 0, 0);
+        lundi.setDate(lundi.getDate() - ((lundi.getDay() + 6) % 7));
+        const lundiSuivant = new Date(lundi);
+        lundiSuivant.setDate(lundiSuivant.getDate() + 7);
+        const rdvsSemaine = rdvs.filter((r) => {
+          const date = new Date(String(r.dateHeure || ''));
+          return !isNaN(date.getTime()) && date >= lundi && date < lundiSuivant;
+        }).length;
+        if (actif) setStats({ personnes: personnes.length, parrainages: 0, rdvsSemaine, contributions: 0 });
+      } catch { /* stats inaccessibles */ }
+    })();
+    return () => { actif = false; };
+  }, []);
+  return (
   <>
     <h1 className="page">Tableau de bord</h1>
     <p className="sous-titre">Jeudi 19 novembre · Administratrice de l'agence de Ouaga</p>
@@ -79,8 +104,8 @@ const TableauDeBord: React.FC<{ onCreer: () => void; onNaviguer: (e: Ecran) => v
           <span className="chip nuit"><Users size={20} /></span>
           <span className="kpi-label">Personnes suivies</span>
         </div>
-        <div className="kpi-chiffre">0</div>
-        <div className="kpi-var">Aucune personne enregistrée pour l'instant</div>
+        <div className="kpi-chiffre">{stats.personnes}</div>
+        <div className="kpi-var">{stats.personnes ? `${stats.personnes} dossiers enregistrés` : "Aucune personne enregistrée pour l'instant"}</div>
       </button>
 
       <button type="button" className="kpi kpi-btn" onClick={() => onNaviguer('personnes')} title="Voir les parrainages">
@@ -88,7 +113,7 @@ const TableauDeBord: React.FC<{ onCreer: () => void; onNaviguer: (e: Ecran) => v
           <span className="chip jaune"><UserRoundPlus size={20} /></span>
           <span className="kpi-label">Parrainages en attente</span>
         </div>
-        <div className="kpi-chiffre">0</div>
+        <div className="kpi-chiffre">{stats.parrainages}</div>
         <div className="kpi-var">Aucun pour l'instant</div>
       </button>
 
@@ -97,8 +122,8 @@ const TableauDeBord: React.FC<{ onCreer: () => void; onNaviguer: (e: Ecran) => v
           <span className="chip vert"><CalendarDays size={20} /></span>
           <span className="kpi-label">RDV cette semaine</span>
         </div>
-        <div className="kpi-chiffre">0</div>
-        <div className="kpi-var">Aucun rendez-vous cette semaine</div>
+        <div className="kpi-chiffre">{stats.rdvsSemaine}</div>
+        <div className="kpi-var">{stats.rdvsSemaine ? `${stats.rdvsSemaine} rendez-vous planifiés` : 'Aucun rendez-vous cette semaine'}</div>
       </button>
 
       <button type="button" className="kpi kpi-btn" onClick={() => onNaviguer('personnes')} title="Voir les contributions famille">
@@ -106,7 +131,7 @@ const TableauDeBord: React.FC<{ onCreer: () => void; onNaviguer: (e: Ecran) => v
           <span className="chip brique"><NotebookPen size={20} /></span>
           <span className="kpi-label">Contributions à revoir</span>
         </div>
-        <div className="kpi-chiffre">0</div>
+        <div className="kpi-chiffre">{stats.contributions}</div>
         <div className="kpi-var">Rien à vérifier</div>
       </button>
     </div>
@@ -149,7 +174,8 @@ const TableauDeBord: React.FC<{ onCreer: () => void; onNaviguer: (e: Ecran) => v
       <span>Base locale : vos dossiers sont enregistrés sur ce poste.</span>
     </div>
   </>
-);
+  );
+};
 
 /* ---------- Filet de sécurité : jamais d'écran blanc silencieux ---------- */
 class FiletErreur extends Component<{ children: React.ReactNode }, { erreur: boolean }> {
@@ -214,6 +240,8 @@ function App() {
         return <Personnes />;
       case 'agenda':
         return <Agenda />;
+      case 'rapports':
+        return <Rapports />;
       default:
         return (
           <>
