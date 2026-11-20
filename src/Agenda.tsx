@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { CalendarDays, UserRoundPlus } from 'lucide-react';
 import { changerStatutRdv, creerRdv, listerPersonnes, listerRdvs, type Personne, type Rdv } from './db';
 import { formaterDateHeureFr } from './format';
 import { Erreur } from './Etats';
+import FormulaireCadre, { type SectionFormulaire } from './formulaires/FormulaireCadre';
 
 const TYPES: { cle: string; libelle: string }[] = [
   { cle: 'rdv_agence', libelle: 'RDV agence' },
@@ -17,6 +18,8 @@ const LIBELLES_STATUT: Record<string, string> = {
   refuse: 'REFUSÉ',
 };
 
+const RDV_VIDE = { personneId: '', type: 'rdv_agence', dateHeure: '', notes: '' };
+
 const Agenda: React.FC = () => {
   const [rdvs, setRdvs] = useState<Rdv[]>([]);
   const [personnes, setPersonnes] = useState<Personne[]>([]);
@@ -27,7 +30,7 @@ const Agenda: React.FC = () => {
   const [type, setType] = useState('rdv_agence');
   const [dateHeure, setDateHeure] = useState('');
   const [notes, setNotes] = useState('');
-  const [erreur, setErreur] = useState<string | null>(null);
+  const [erreurs, setErreurs] = useState<Record<string, string>>({});
   const [erreurChargement, setErreurChargement] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -51,22 +54,24 @@ const Agenda: React.FC = () => {
 
   const rdvsFiltres = typeFiltre ? rdvs.filter((r) => r.type === typeFiltre) : rdvs;
 
+  const ouvrirFormulaire = () => {
+    setErreurs({});
+    setFormulaireOuvert(true);
+  };
+
   const ajouter = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!personneId) {
-      setErreur('Choisissez une personne.');
-      return;
-    }
-    if (!dateHeure) {
-      setErreur('Choisissez une date et une heure.');
-      return;
-    }
+    const invalides: Record<string, string> = {};
+    if (!personneId) invalides.personneId = 'Choisissez une personne.';
+    if (!dateHeure) invalides.dateHeure = 'Choisissez une date et une heure.';
+    setErreurs(invalides);
+    if (Object.keys(invalides).length > 0) return;
     await creerRdv({ personneId: Number(personneId), type, statut: 'propose', dateHeure, notes: notes.trim() });
     setFormulaireOuvert(false);
     setPersonneId('');
     setDateHeure('');
     setNotes('');
-    setErreur(null);
+    setErreurs({});
     await recharger();
     setToast('Rendez-vous enregistré.');
     window.setTimeout(() => setToast(null), 2600);
@@ -85,6 +90,26 @@ const Agenda: React.FC = () => {
 
   const dateAffichee = (r: Rdv): string => formaterDateHeureFr(r.dateHeure);
 
+  const sectionsRdv: SectionFormulaire[] = useMemo(() => [
+    {
+      titre: 'RENDEZ-VOUS',
+      champs: [
+        {
+          cle: 'personneId', libelle: 'Personne', type: 'select', obligatoire: true,
+          options: [
+            { valeur: '', libelle: '— Choisir une personne —' },
+            ...personnes.map((p) => ({ valeur: String(p.id), libelle: `${p.prenom} ${p.nom}` })),
+          ],
+        },
+        { cle: 'type', libelle: 'Type', type: 'select', obligatoire: true, options: TYPES.map((t) => ({ valeur: t.cle, libelle: t.libelle })) },
+        { cle: 'dateHeure', libelle: 'Date et heure', type: 'datetime', obligatoire: true, indications: 'jj/mm/aaaa · hh:mm' },
+        { cle: 'notes', libelle: 'Notes', placeholder: 'Sujet, lieu, consignes…' },
+      ],
+    },
+  ], [personnes]);
+
+  const valeursRdv = { personneId, type, dateHeure, notes };
+
   return (
     <div className="page-enter">
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-3)', flexWrap: 'wrap' }}>
@@ -92,7 +117,7 @@ const Agenda: React.FC = () => {
           <h1 className="page">Agenda</h1>
           <p className="sous-titre">Les rendez-vous : RDV agence, sorties terrain, entretiens</p>
         </div>
-        <button type="button" className="btn btn-principal" style={{ marginLeft: 'auto' }} onClick={() => setFormulaireOuvert(true)}>
+        <button type="button" className="btn btn-principal" style={{ marginLeft: 'auto' }} onClick={ouvrirFormulaire}>
           <UserRoundPlus size={18} /> Nouveau rendez-vous
         </button>
       </div>
@@ -152,7 +177,7 @@ const Agenda: React.FC = () => {
         <div className="bloc">
           <div className="bloc-titre">
             Nouveau rendez-vous
-            <button type="button" className="lien-bloc" onClick={() => setFormulaireOuvert(true)}>Ouvrir le formulaire →</button>
+            <button type="button" className="lien-bloc" onClick={ouvrirFormulaire}>Ouvrir le formulaire →</button>
           </div>
           <div className="vide">
             <CalendarDays size={40} />
@@ -163,51 +188,23 @@ const Agenda: React.FC = () => {
       </div>
 
       {formulaireOuvert && (
-        <div className="dossier" role="dialog" aria-modal="true" aria-label="Nouveau rendez-vous">
-          <form onSubmit={ajouter}>
-            <div className="dossier-tete">
-              <div>
-                <b>Nouveau rendez-vous</b>
-                <small>Le type et la date sont requis.</small>
-              </div>
-              <button type="button" className="btn btn-secondaire" onClick={() => setFormulaireOuvert(false)}>
-                Annuler
-              </button>
-            </div>
-            <div className="grille-form">
-              <label className="champ">
-                <span>Personne *</span>
-                <select value={personneId} onChange={(e) => setPersonneId(e.target.value)}>
-                  <option value="">— Choisir une personne —</option>
-                  {personnes.map((p) => (
-                    <option key={p.id} value={p.id}>{p.prenom} {p.nom}</option>
-                  ))}
-                </select>
-              </label>
-              <label className="champ">
-                <span>Type *</span>
-                <select value={type} onChange={(e) => setType(e.target.value)}>
-                  {TYPES.map((t) => (
-                    <option key={t.cle} value={t.cle}>{t.libelle}</option>
-                  ))}
-                </select>
-              </label>
-              <label className="champ">
-                <span>Date et heure *</span>
-                <input type="datetime-local" value={dateHeure} onChange={(e) => setDateHeure(e.target.value)} />
-              </label>
-              <label className="champ">
-                <span>Notes</span>
-                <input type="text" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Sujet, lieu, consignes…" />
-              </label>
-            </div>
-            {erreur && <p role="alert" style={{ color: 'var(--brique)', marginTop: 'var(--sp-3)' }}>{erreur}</p>}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--sp-3)', marginTop: 'var(--sp-4)' }}>
-              <button type="button" className="btn btn-secondaire" onClick={() => setFormulaireOuvert(false)}>Annuler</button>
-              <button type="submit" className="btn btn-principal">Ajouter</button>
-            </div>
-          </form>
-        </div>
+        <FormulaireCadre
+          titre="Nouveau rendez-vous"
+          sections={sectionsRdv}
+          valeurs={valeursRdv}
+          valeursInitiales={RDV_VIDE}
+          erreurs={erreurs}
+          onChange={(valeurs) => {
+            setPersonneId(valeurs.personneId);
+            setType(valeurs.type);
+            setDateHeure(valeurs.dateHeure);
+            setNotes(valeurs.notes);
+            if (Object.keys(erreurs).length) setErreurs({});
+          }}
+          onFermer={() => setFormulaireOuvert(false)}
+          onEnregistrer={ajouter}
+          libelleEnregistrer="Ajouter"
+        />
       )}
 
       {toast && <div role="status" className="toast">{toast}</div>}

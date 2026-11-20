@@ -18,7 +18,7 @@ const Personnes: React.FC<{ onChanger?: () => void }> = ({ onChanger }) => {
   const [erreurChargement, setErreurChargement] = useState<string | null>(null);
   const [formulaireOuvert, setFormulaireOuvert] = useState(false);
   const [formulaire, setFormulaire] = useState<Formulaire>(VIDE);
-  const [erreur, setErreur] = useState<string | null>(null);
+  const [erreurs, setErreurs] = useState<Formulaire>({});
   const [selection, setSelection] = useState<Personne | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -47,16 +47,17 @@ const Personnes: React.FC<{ onChanger?: () => void }> = ({ onChanger }) => {
 
   const ouvrirFormulaire = () => {
     setFormulaire(VIDE);
-    setErreur(null);
+    setErreurs({});
     setFormulaireOuvert(true);
   };
 
   const enregistrer = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formulaire.prenom.trim() || !formulaire.nom.trim()) {
-      setErreur('Le prénom et le nom sont obligatoires.');
-      return;
-    }
+    const invalides: Formulaire = {};
+    if (!formulaire.nom.trim()) invalides.nom = 'Le nom est obligatoire.';
+    if (!formulaire.prenom.trim()) invalides.prenom = 'Le prénom est obligatoire.';
+    setErreurs(invalides);
+    if (Object.keys(invalides).length > 0) return;
     await creerPersonne({
       prenom: formulaire.prenom.trim(),
       nom: formulaire.nom.trim(),
@@ -164,8 +165,8 @@ const Personnes: React.FC<{ onChanger?: () => void }> = ({ onChanger }) => {
       {formulaireOuvert && (
         <FormulairePersonne
           formulaire={formulaire}
-          erreur={erreur}
-          onChange={setFormulaire}
+          erreurs={erreurs}
+          onChange={(valeurs) => { setFormulaire(valeurs); if (Object.keys(erreurs).length) setErreurs({}); }}
           onFermer={() => setFormulaireOuvert(false)}
           onEnregistrer={enregistrer}
         />

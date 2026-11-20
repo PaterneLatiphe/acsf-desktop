@@ -26,6 +26,7 @@
   --nuit-15:rgba(21,10,84,.15);
   --nuit-35:rgba(21,10,84,.35);
   --nuit-45:rgba(21,10,84,.45);
+  --voile:rgba(24,24,28,.28);  /* fond uniforme des fenêtres, sans teinte violette */
   --jaune-survol:#F2E547;
 
   /* Sur le bleu nuit : transparences uniquement. */
