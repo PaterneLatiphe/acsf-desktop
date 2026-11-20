@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { CalendarDays, UserRoundPlus } from 'lucide-react';
 import { changerStatutRdv, creerRdv, listerPersonnes, listerRdvs, type Personne, type Rdv } from './db';
+import { formaterDateHeureFr } from './format';
 
 const TYPES: { cle: string; libelle: string }[] = [
   { cle: 'rdv_agence', libelle: 'RDV agence' },
@@ -74,11 +75,7 @@ const Agenda: React.FC = () => {
     return `${p.prenom} ${p.nom}`;
   };
 
-  const dateAffichee = (r: Rdv): string => {
-    if (!r.dateHeure) return '—';
-    const valeur = String(r.dateHeure).slice(0, 16);
-    return valeur.replace('T', 'à ');
-  };
+  const dateAffichee = (r: Rdv): string => formaterDateHeureFr(r.dateHeure);
 
   return (
     <>

@@ -1,50 +1,21 @@
+// Écran Personnes : chargement, recherche, création, fiche et export. Logique inchangée.
+
 import React, { useEffect, useMemo, useState } from 'react';
-import { UserRoundPlus, X, Download } from 'lucide-react';
+import { UserRoundPlus, Download } from 'lucide-react';
 import { creerPersonne, listerPersonnes, type Personne } from './db';
 import { dateIso, exporterTableur } from './exportTableur';
 import { UTILISATEUR_COURANT } from './utilisateur';
+import { formaterDateFr } from './format';
+import { Erreur, IllustrationVide } from './Etats';
 import Volets from './Volets';
-
-type Champ = {
-  cle: string;
-  libelle: string;
-  obligatoire?: boolean;
-  type?: 'text' | 'date' | 'select';
-  options?: string[];
-};
-
-const CHAMPS: Champ[] = [
-  { cle: 'prenom', libelle: 'Prénom', obligatoire: true },
-  { cle: 'nom', libelle: 'Nom', obligatoire: true },
-  { cle: 'sexe', libelle: 'Sexe', type: 'select', options: ['', 'Féminin', 'Masculin'] },
-  { cle: 'dateNaissance', libelle: 'Date de naissance', type: 'date' },
-  { cle: 'telephone', libelle: 'Téléphone' },
-  { cle: 'adresse', libelle: 'Adresse / quartier' },
-  { cle: 'langue', libelle: 'Langue principale', type: 'select', options: ['fr', 'Mooré', 'Dioula', 'Autre'] },
-  { cle: 'programme', libelle: 'Programme', type: 'select', options: ['', 'Soutien scolaire', 'Appui familial', 'Formation parents'] },
-];
-
-type Formulaire = Record<string, string>;
-
-const VIDE: Formulaire = {
-  prenom: '', nom: '', sexe: '', dateNaissance: '', telephone: '', adresse: '', langue: 'fr', programme: '',
-};
-
-const ABREVIATIONS_PROGRAMME: Record<string, string> = {
-  'Soutien scolaire': 'SS',
-  'Appui familial': 'AF',
-  'Formation parents': 'FP',
-};
-
-function abreviationProgramme(programme: string): string {
-  if (!programme) return '—';
-  return ABREVIATIONS_PROGRAMME[programme] ?? programme;
-}
+import FormulairePersonne, { VIDE, type Formulaire } from './personnes/FormulairePersonne';
+import ListePersonnes from './personnes/ListePersonnes';
 
 const Personnes: React.FC<{ onChanger?: () => void }> = ({ onChanger }) => {
   const [personnes, setPersonnes] = useState<Personne[]>([]);
   const [requete, setRequete] = useState('');
   const [chargement, setChargement] = useState(true);
+  const [erreurChargement, setErreurChargement] = useState<string | null>(null);
   const [formulaireOuvert, setFormulaireOuvert] = useState(false);
   const [formulaire, setFormulaire] = useState<Formulaire>(VIDE);
   const [erreur, setErreur] = useState<string | null>(null);
@@ -53,14 +24,18 @@ const Personnes: React.FC<{ onChanger?: () => void }> = ({ onChanger }) => {
 
   const recharger = async () => {
     setChargement(true);
-    const liste = await listerPersonnes();
-    setPersonnes(liste);
-    setChargement(false);
+    try {
+      const liste = await listerPersonnes();
+      setPersonnes(liste);
+      setErreurChargement(null);
+    } catch {
+      setErreurChargement('La liste des personnes n’a pas pu être chargée.');
+    } finally {
+      setChargement(false);
+    }
   };
 
-  useEffect(() => {
-    recharger();
-  }, []);
+  useEffect(() => { recharger(); }, []);
 
   const resultats = useMemo(() => {
     const q = requete.trim().toLowerCase();
@@ -123,17 +98,15 @@ const Personnes: React.FC<{ onChanger?: () => void }> = ({ onChanger }) => {
 
   if (selection) {
     return (
-      <>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-3)', marginBottom: 'var(--sp-2)', padding: '0 var(--sp-2)', flexWrap: 'wrap' }}>
-          <button type="button" className="btn btn-secondaire" style={{ minHeight: 36, padding: '6px 12px', fontSize: '.8rem' }} onClick={() => setSelection(null)}>
-            ← Retour
-          </button>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-2)', flexWrap: 'wrap' }}>
-            <b style={{ fontSize: '1.1rem', color: 'var(--nuit)' }}>Dossier — {selection.prenom} {selection.nom}</b>
-            <span style={{ fontSize: '.78rem', color: 'var(--gris)' }}>
-              {selection.dateNaissance ? `né(e) ${selection.dateNaissance} · ` : ''}{selection.telephone || 'pas de tél.'} · Code : <code>{selection.code}</code> ·
-              <span className="pill">{selection.statut === 'suivie' ? 'SUIVI' : selection.statut.toUpperCase()}</span>
-            </span>
+      <div className="page-enter">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-3)', marginBottom: 'var(--sp-2)', flexWrap: 'wrap' }}>
+          <button type="button" className="btn btn-secondaire" onClick={() => setSelection(null)}>← Retour</button>
+          <div>
+            <h1 className="page" style={{ fontSize: 22 }}>Dossier — {selection.prenom} {selection.nom}</h1>
+            <p className="sous-titre">
+              {selection.dateNaissance ? `né(e) le ${formaterDateFr(selection.dateNaissance)} · ` : ''}
+              {selection.telephone || 'pas de tél.'} · Code : <code>{selection.code}</code>
+            </p>
           </div>
         </div>
         <div className="fiche-page">
@@ -142,12 +115,12 @@ const Personnes: React.FC<{ onChanger?: () => void }> = ({ onChanger }) => {
           </div>
         </div>
         {toast && <div role="status" className="toast">{toast}</div>}
-      </>
+      </div>
     );
   }
 
   return (
-    <>
+    <div className="page-enter">
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-3)', flexWrap: 'wrap' }}>
         <div>
           <h1 className="page">Personnes</h1>
@@ -163,106 +136,42 @@ const Personnes: React.FC<{ onChanger?: () => void }> = ({ onChanger }) => {
         </div>
       </div>
 
-      <label className="recherche" style={{ maxWidth: 520, margin: '0 0 var(--sp-4) 0', background: 'var(--feuille)', border: '1px solid var(--ligne)' }}>
+      <label className="recherche" style={{ maxWidth: 520, margin: 'var(--sp-5) 0', background: 'var(--feuille)' }}>
         <input
           type="text"
           value={requete}
           onChange={(e) => setRequete(e.target.value)}
           placeholder="Rechercher : nom, prénom, téléphone, code…"
           aria-label="Rechercher une personne"
-          style={{ color: 'var(--plume)' }}
         />
       </label>
 
+      {erreurChargement && <Erreur message={erreurChargement} onRetry={recharger} />}
       {chargement ? (
         <div className="grille"><div className="bloc"><div className="skel skel-ligne" /><div className="skel skel-ligne" /></div></div>
       ) : resultats.length === 0 ? (
         <div className="vide">
+          <IllustrationVide />
           <b>{requete ? 'Aucune personne ne correspond à la recherche.' : 'Aucune personne enregistrée.'}</b>
           {requete
             ? 'Essayez un autre nom, prénom, téléphone ou code.'
-            : 'Créez la première fiche personne avec le bouton « Nouvelle personne ».'}
+            : 'Utilisez « Nouvelle personne » pour créer la première fiche.'}
         </div>
       ) : (
-        <div className="bloc" style={{ padding: 'var(--sp-2) var(--sp-4)' }}>
-          <table className="tableau-personnes">
-            <thead>
-              <tr>
-                <th>Nom</th>
-                <th>Prénom</th>
-                <th>Sexe</th>
-                <th>Date de naissance</th>
-                <th>Téléphone</th>
-                <th>Prog.</th>
-                <th>Statut</th>
-              </tr>
-            </thead>
-            <tbody>
-              {resultats.map((p) => (
-                <tr key={p.id} onClick={() => setSelection(p)} style={{ cursor: 'pointer' }}>
-                  <td>{p.nom}</td>
-                  <td>{p.prenom}</td>
-                  <td>{p.sexe || '—'}</td>
-                  <td>{p.dateNaissance || '—'}</td>
-                  <td>{p.telephone || '—'}</td>
-                  <td title={p.programme || 'sans programme'}>{abreviationProgramme(p.programme)}</td>
-                  <td><span className="pill ok">{p.statut === 'suivie' ? 'SUIVI' : p.statut.toUpperCase()}</span></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <p className="sous-titre" style={{ marginTop: 'var(--sp-3)', marginBottom: 0 }}>
-            Abréviations programme : SS = Soutien scolaire · AF = Appui familial · FP = Formation parents
-          </p>
-        </div>
+        <ListePersonnes personnes={resultats} surSelection={setSelection} />
       )}
 
       {formulaireOuvert && (
-        <div className="dossier" role="dialog" aria-modal="true" aria-label="Nouvelle personne">
-          <form onSubmit={enregistrer}>
-            <div className="dossier-tete">
-              <div>
-                <b>Nouvelle personne</b>
-                <small>Les champs prénom et nom sont obligatoires.</small>
-              </div>
-              <button type="button" className="btn btn-secondaire" onClick={() => setFormulaireOuvert(false)} aria-label="Annuler">
-                <X size={18} /> Annuler
-              </button>
-            </div>
-            <div className="grille-form">
-              {CHAMPS.map((champ) => (
-                <label key={champ.cle} className="champ">
-                  <span>{champ.libelle}{champ.obligatoire ? ' *' : ''}</span>
-                  {champ.type === 'select' ? (
-                    <select
-                      value={formulaire[champ.cle]}
-                      onChange={(e) => setFormulaire({ ...formulaire, [champ.cle]: e.target.value })}
-                    >
-                      {(champ.options ?? []).map((opt) => (
-                        <option key={opt} value={opt}>{opt || '—'}</option>
-                      ))}
-                    </select>
-                  ) : (
-                    <input
-                      type={champ.type === 'date' ? 'date' : 'text'}
-                      value={formulaire[champ.cle]}
-                      onChange={(e) => setFormulaire({ ...formulaire, [champ.cle]: e.target.value })}
-                    />
-                  )}
-                </label>
-              ))}
-            </div>
-            {erreur && <p role="alert" style={{ color: 'var(--brique)', marginTop: 'var(--sp-3)' }}>{erreur}</p>}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--sp-3)', marginTop: 'var(--sp-4)' }}>
-              <button type="button" className="btn btn-secondaire" onClick={() => setFormulaireOuvert(false)}>Annuler</button>
-              <button type="submit" className="btn btn-principal">Enregistrer</button>
-            </div>
-          </form>
-        </div>
+        <FormulairePersonne
+          formulaire={formulaire}
+          erreur={erreur}
+          onChange={setFormulaire}
+          onFermer={() => setFormulaireOuvert(false)}
+          onEnregistrer={enregistrer}
+        />
       )}
-
       {toast && <div role="status" className="toast">{toast}</div>}
-    </>
+    </div>
   );
 };
 

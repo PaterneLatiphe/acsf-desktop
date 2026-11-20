@@ -23,6 +23,13 @@ export const IllustrationVide: React.FC = () => (
   </svg>
 );
 
+export const Erreur: React.FC<{ message: string; onRetry: () => void }> = ({ message, onRetry }) => (
+  <div className="erreur" role="alert">
+    <span>{message}</span>
+    <button type="button" className="btn btn-secondaire" onClick={onRetry}>Réessayer</button>
+  </div>
+);
+
 export class FiletErreur extends Component<{ children: React.ReactNode }, { erreur: boolean }> {
   state = { erreur: false };
 
