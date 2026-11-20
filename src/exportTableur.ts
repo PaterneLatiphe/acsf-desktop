@@ -156,11 +156,89 @@ function valeurAffichee(valeur: unknown, type: TypeColonne | undefined): string 
   return texte;
 }
 
-/** Largeur de base = contenu le plus long + 3 caractères (4 de plus ajoutés ensuite). */
+/* ---------- Largeurs pensées pour l'impression A4 ---------- */
+
+const MARGE_FILTRE = 4; // flèche de filtre, ajoutée à TOUTES les colonnes
+const LARGEUR_PAGE_MIN = 100;
+const LARGEUR_PAGE_MAX = 130;
+// Au-delà, l'ajustement à une page de large descendrait sous 75 % en A4 paysage.
+const LARGEUR_IMPRESSION_MAX = 190;
+
+const LARGEURS_PAR_TYPE = { numero: 6, date: 13, auteur: 18, court: 15, moyen: 26, long: 48 } as const;
+type CategorieColonne = keyof typeof LARGEURS_PAR_TYPE;
+
+const LIBELLES_COURTS = new Set(['sexe', 'statut', 'oui-non', 'evolution', 'consentement', 'type', 'type-de-conseil', 'volet']);
+const LIBELLES_LONGS = new Set([
+  'remarques', 'description', 'contenu-spirituel', 'difficultes', 'difficultes-reperees',
+  'contenu', 'traitement-en-cours', 'symptomes', 'conseil-declare', 'plan-de-suivi', 'soutien-prevu',
+]);
+
+function categorieColonne(colonne: ColonneTableur): CategorieColonne {
+  if (colonne.cle === '_numero') return 'numero';
+  if (colonne.type === 'date') return 'date';
+  const libelle = nettoyer(colonne.libelle).toLowerCase();
+  if (/saisi-par|auteur/.test(libelle)) return 'auteur';
+  if (LIBELLES_COURTS.has(libelle)) return 'court';
+  if (LIBELLES_LONGS.has(libelle)) return 'long';
+  return 'moyen';
+}
+
+/** Largeur de base par type de colonne, bornée par le contenu réel. */
 function largeurColonne(colonne: ColonneTableur, lignes: Record<string, unknown>[]): number {
-  let max = colonne.libelle.length;
-  for (const ligne of lignes) max = Math.max(max, valeurAffichee(ligne[colonne.cle], colonne.type).length);
-  return Math.min(Math.max(colonne.largeur ?? 0, max + 3), 60);
+  let contenu = colonne.libelle.length;
+  for (const ligne of lignes) contenu = Math.max(contenu, valeurAffichee(ligne[colonne.cle], colonne.type).length);
+  const categorie = categorieColonne(colonne);
+  let largeur: number = LARGEURS_PAR_TYPE[categorie];
+  if (categorie === 'court') largeur = Math.min(16, Math.max(14, contenu));
+  else if (categorie === 'moyen') largeur = Math.min(28, Math.max(22, contenu));
+  else if (categorie === 'long') largeur = Math.min(55, Math.max(40, contenu));
+  return Math.max(colonne.largeur ?? 0, largeur);
+}
+
+/** Répartit l'espace disponible et choisit l'orientation pour tenir sur une page. */
+function ajusterLargeurs(colonnes: ColonneTableur[], largeurs: number[], titre: string): { largeurs: number[]; orientation: 'landscape' | 'portrait' } {
+  const resultat = [...largeurs];
+  const derniere = resultat.length - 1;
+  let total = resultat.reduce((somme, l) => somme + l, 0);
+
+  // Peu de colonnes :-on remplit la page, surtout par la dernière colonne de texte.
+  if (total < LARGEUR_PAGE_MIN) {
+    let manque = LARGEUR_PAGE_MIN - total;
+    const partDerniere = manque * 0.4;
+    resultat[derniere] += partDerniere;
+    manque -= partDerniere;
+    const textes = colonnes.map((_, i) => i).filter((i) => !['numero', 'date'].includes(categorieColonne(colonnes[i])));
+    const part = manque / Math.max(1, textes.length);
+    textes.forEach((i) => { resultat[i] += part; });
+    total = LARGEUR_PAGE_MIN;
+  }
+
+  // L'en-tête (logo + agence + titre) ne doit jamais déborder du tableau.
+  const largeurEnTete = Math.min(LARGEUR_PAGE_MAX, 14 + 32 + titre.length * 1.15);
+  if (total < largeurEnTete) {
+    resultat[derniere] += largeurEnTete - total;
+    total = largeurEnTete;
+  }
+
+  // Eviter un facteur de réduction inférieur à 75 % : rogner d'abord les textes longs.
+  let reste = Math.max(0, total - LARGEUR_IMPRESSION_MAX);
+  const planchers: Partial<Record<CategorieColonne, number>> = { long: 40, moyen: 22, auteur: 18, court: 14 };
+  for (const categorie of ['long', 'moyen', 'auteur', 'court'] as CategorieColonne[]) {
+    const indices = colonnes.map((_, i) => i).filter((i) => categorieColonne(colonnes[i]) === categorie);
+    if (!indices.length) continue;
+    const plancher = (planchers[categorie] ?? 0) + MARGE_FILTRE;
+    for (const i of indices) {
+      if (reste <= 0) break;
+      const retrait = Math.min(Math.max(0, resultat[i] - plancher), reste / indices.length);
+      resultat[i] -= retrait;
+      reste -= retrait;
+    }
+  }
+
+  return {
+    largeurs: resultat.map((l) => (Math.round(l * 10) / 10 === 9 ? 9.1 : Math.round(l * 10) / 10)),
+    orientation: resultat.reduce((somme, l) => somme + l, 0) > 95 ? 'landscape' : 'portrait',
+  };
 }
 
 function lignesNecessaires(texte: string, largeur: number): number {
@@ -202,16 +280,29 @@ function ecrireEnTete(
   ws.getRow(2).height = 12;
 
   // Répartition de la ligne 1 : agence à gauche, titre à droite.
-  const largeurTitre = Math.max(28, options.titre.length * 0.85);
+  // ~1,15 unité de largeur Excel par caractère à 13 pt : le titre ne doit jamais être coupé.
+  const largeurTitre = Math.max(28, options.titre.length * 1.15);
   let positionSplit = nbColonnes - 1;
   let largeurDroite = 0;
+  let meilleurSplit = positionSplit;
+  let meilleureDroite = 0;
+  let titrePlace = false;
   for (let c = nbColonnes; c >= 3; c--) {
     largeurDroite += largeurs[c - 1];
+    const largeurAgence = largeurs.slice(1, c - 1).reduce((somme, l) => somme + l, 0);
+    if (largeurAgence < 34) continue;
+    // On garde le meilleur compromis même si le titre doit être réduit.
+    if (largeurDroite > meilleureDroite) {
+      meilleureDroite = largeurDroite;
+      meilleurSplit = c - 1;
+    }
     if (largeurDroite >= largeurTitre) {
       positionSplit = c - 1;
+      titrePlace = true;
       break;
     }
   }
+  if (!titrePlace) positionSplit = meilleurSplit;
   positionSplit = Math.max(2, Math.min(positionSplit, nbColonnes - 1));
 
   if (nbColonnes >= 4) {
@@ -227,9 +318,12 @@ function ecrireEnTete(
     };
     agence.alignment = { vertical: 'middle', horizontal: 'left' };
 
+    // Si l'espace manque malgré tout, on réduit la police (jamais sous 9 pt).
+    const largeurDisponible = largeurs.slice(positionSplit).reduce((somme, l) => somme + l, 0);
+    const tailleTitre = Math.max(9, Math.min(13, Math.floor(13 * largeurDisponible / largeurTitre)));
     const titre = ws.getCell(1, positionSplit + 1);
     titre.value = options.titre;
-    titre.font = { name: 'Calibri', size: 13, bold: true, color: { argb: COULEURS.nuit } };
+    titre.font = { name: 'Calibri', size: tailleTitre, bold: true, color: { argb: COULEURS.nuit } };
     titre.alignment = { vertical: 'middle', horizontal: 'right', wrapText: false };
   }
 
@@ -290,16 +384,13 @@ function ecrireCellule(cellule: Cell, valeur: unknown, type: TypeColonne | undef
 
 /** Ajoute une feuille complète : en-tête unique + tableau + pied + impression. */
 export function ajouterFeuilleTableur(classeur: Workbook, options: OptionsTableur): Worksheet {
-  const colonnes: ColonneTableur[] = [{ cle: '_numero', libelle: 'N°', type: 'nombre', largeur: 7 }, ...options.colonnes];
+  const colonnes: ColonneTableur[] = [{ cle: '_numero', libelle: 'N°', type: 'nombre', largeur: 6 }, ...options.colonnes];
   const nbColonnes = colonnes.length;
-  // Marge de 4 caractères sur TOUTES les colonnes, dernière comprise, pour que
-  // la flèche du filtre ne masque jamais le texte.
-  const largeurs: number[] = [];
-  colonnes.forEach((c) => {
-    const largeur = largeurColonne(c, options.lignes) + 4;
-    // ExcelJS ignore la largeur 9 (valeur par défaut) dans <cols>.
-    largeurs.push(largeur === 9 ? 9.1 : largeur);
-  });
+  const { largeurs, orientation } = ajusterLargeurs(
+    colonnes,
+    colonnes.map((c) => largeurColonne(c, options.lignes) + MARGE_FILTRE),
+    options.titre,
+  );
 
   const ws = classeur.addWorksheet(options.nomOnglet.slice(0, 31) || 'Export', {
     properties: { defaultRowHeight: 15 },
@@ -334,13 +425,27 @@ export function ajouterFeuilleTableur(classeur: Workbook, options: OptionsTableu
       if (texte) nbLignes = Math.max(nbLignes, lignesNecessaires(texte, largeurs[c + 1]));
       ecrireCellule(row.getCell(c + 2), ligne[colonne.cle], colonne.type, index % 2 === 1);
     });
-    row.height = Math.min(90, Math.max(15, nbLignes * 13));
+    row.height = Math.min(120, Math.max(15, nbLignes * 14));
     row.getCell(1).border = BORDURE_FINE;
     row.getCell(1).alignment = { vertical: 'top', horizontal: 'center' };
     if (index % 2 === 1) row.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COULEURS.fond } };
   });
 
-  const derniereLigne = LIGNE_TITRES + options.lignes.length;
+  // Onglet sans données : on garde l'en-tête et le tableau, avec un message lisible.
+  const sansDonnees = options.lignes.length === 0;
+  if (sansDonnees) {
+    const vide = ws.getRow(LIGNE_TITRES + 1);
+    ws.mergeCells(LIGNE_TITRES + 1, 1, LIGNE_TITRES + 1, nbColonnes);
+    const cellule = vide.getCell(1);
+    cellule.value = 'Aucun passage enregistré';
+    cellule.font = { name: 'Calibri', size: 10, italic: true, color: { argb: COULEURS.discret } };
+    cellule.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COULEURS.fond } };
+    cellule.alignment = { vertical: 'middle', horizontal: 'center' };
+    for (let c = 1; c <= nbColonnes; c++) vide.getCell(c).border = BORDURE_FINE;
+    vide.height = 20;
+  }
+
+  const derniereLigne = LIGNE_TITRES + options.lignes.length + (sansDonnees ? 1 : 0);
 
   // Pied de tableau
   if (options.libelleTotal) {
@@ -355,25 +460,26 @@ export function ajouterFeuilleTableur(classeur: Workbook, options: OptionsTableu
   }
 
   // Filtres sur la ligne des titres uniquement (pas sur le pied)
-  if (options.lignes.length > 0) {
-    ws.autoFilter = { from: { row: LIGNE_TITRES, column: 1 }, to: { row: derniereLigne, column: nbColonnes } };
-  }
+  ws.autoFilter = {
+    from: { row: LIGNE_TITRES, column: 1 },
+    to: { row: sansDonnees ? LIGNE_TITRES : derniereLigne, column: nbColonnes },
+  };
 
-  // Impression : paysage, une page de large, titres répétés, zone limitée aux colonnes utilisées
+  // Impression identique pour tous les onglets : A4, une page de large, titres répétés.
   const derniereColonne = lettreColonne(nbColonnes);
   const finImpression = options.libelleTotal ? derniereLigne + 1 : derniereLigne;
   ws.pageSetup = {
-    orientation: 'landscape',
+    orientation,
     fitToPage: true,
     fitToWidth: 1,
     fitToHeight: 0,
     paperSize: 9, // A4
     horizontalCentered: true,
-    margins: { left: 0.35, right: 0.35, top: 0.6, bottom: 0.6, header: 0.25, footer: 0.3 },
+    margins: { left: 0.47, right: 0.47, top: 0.59, bottom: 0.59, header: 0.2, footer: 0.3 },
     printArea: `A1:${derniereColonne}${finImpression}`,
     printTitlesRow: '1:3',
   };
-  ws.headerFooter.oddFooter = '&L ACSF-Afrique SARL — Confidentiel&R Page &P sur &N';
+  ws.headerFooter.oddFooter = '&LACSF-Afrique SARL — Confidentiel&RPage &P sur &N';
   ws.headerFooter.evenFooter = ws.headerFooter.oddFooter;
   ws.headerFooter.firstFooter = ws.headerFooter.oddFooter;
 
