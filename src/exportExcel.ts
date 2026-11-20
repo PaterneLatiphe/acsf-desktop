@@ -7,6 +7,7 @@ import {
   ajouterFeuilleTableur,
   creerClasseur,
   nomFichierExport,
+  pluriel,
   telechargerClasseur,
   type ColonneTableur,
 } from './exportTableur';
@@ -15,9 +16,13 @@ import { UTILISATEUR_COURANT } from './utilisateur';
 export interface PersonneExport {
   nom: string;
   prenom?: string;
+  sexe?: string;
   dateNaissance?: string;
   telephone?: string;
+  adresse?: string;
   code?: string;
+  programme?: string;
+  statut?: string;
   passages?: any[];
   // Événements de l'historique de la personne (échanges + passages)
   evenements?: { date: string; type: string; auteur: string; contenu: string }[];
@@ -72,16 +77,24 @@ export async function construireWorkbook(personneId: number, voletActif: string,
     colonnes: [
       { cle: 'nom', libelle: 'Nom', type: 'texte' },
       { cle: 'prenom', libelle: 'Prénom', type: 'texte' },
+      { cle: 'sexe', libelle: 'Sexe', type: 'texte' },
       { cle: 'dateNaissance', libelle: 'Date de naissance', type: 'date' },
       { cle: 'telephone', libelle: 'Téléphone', type: 'telephone' },
+      { cle: 'adresse', libelle: 'Adresse / quartier', type: 'texte' },
       { cle: 'code', libelle: 'Code de filiation', type: 'texte' },
+      { cle: 'programme', libelle: 'Programme', type: 'programme' },
+      { cle: 'statut', libelle: 'Statut', type: 'statut' },
     ],
     lignes: [{
       nom: personne?.nom || '',
       prenom: personne?.prenom || '',
+      sexe: personne?.sexe || '',
       dateNaissance: personne?.dateNaissance || '',
       telephone: personne?.telephone || '',
+      adresse: personne?.adresse || '',
       code: personne?.code || '',
+      programme: personne?.programme || '',
+      statut: personne?.statut || '',
     }],
     exportePar: UTILISATEUR_COURANT,
     libelleTotal: 'Total : 1 personne',
@@ -114,7 +127,7 @@ export async function construireWorkbook(personneId: number, voletActif: string,
     colonnes: COLONNES_SYNTHESE,
     lignes: lignesSynthese,
     exportePar: UTILISATEUR_COURANT,
-    libelleTotal: `Total : ${total} passages`,
+    libelleTotal: `Total : ${pluriel(total, 'passage', 'passages')}`,
   });
 
   // Un onglet par volet saisissable
@@ -137,7 +150,7 @@ export async function construireWorkbook(personneId: number, voletActif: string,
       colonnes,
       lignes,
       exportePar: UTILISATEUR_COURANT,
-      libelleTotal: `Total : ${lignes.length} passages`,
+      libelleTotal: `Total : ${pluriel(lignes.length, 'passage', 'passages')}`,
     });
   }
 
@@ -154,7 +167,7 @@ export async function construireWorkbook(personneId: number, voletActif: string,
     colonnes: colonnesDepuisConfig('historique'),
     lignes: evenements,
     exportePar: UTILISATEUR_COURANT,
-    libelleTotal: `Total : ${evenements.length} événements`,
+    libelleTotal: `Total : ${pluriel(evenements.length, 'événement', 'événements')}`,
   });
 
   return classeur;

@@ -40,7 +40,7 @@ const VOLETS_SYNTHESE = ['education', 'sante', 'social', 'spiritualite'];
 type VoletsProps = {
   personneId: number;
   utilisateur: string;
-  personne?: { nom: string; prenom: string; dateNaissance?: string; telephone?: string; code?: string };
+  personne?: { nom: string; prenom: string; sexe?: string; dateNaissance?: string; telephone?: string; adresse?: string; code?: string; programme?: string; statut?: string };
   onChanger?: () => void;
 };
 
@@ -414,9 +414,13 @@ const Volets: React.FC<VoletsProps> = ({ personneId, utilisateur, personne, onCh
     exporterExcel(personneId, voletActif, {
       nom: personne?.nom || '',
       prenom: personne?.prenom || '',
+      sexe: personne?.sexe,
       dateNaissance: personne?.dateNaissance,
       telephone: personne?.telephone,
+      adresse: personne?.adresse,
       code: personne?.code,
+      programme: personne?.programme,
+      statut: personne?.statut,
       passages: tousPassages,
       evenements,
     });

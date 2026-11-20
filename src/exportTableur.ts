@@ -1,18 +1,18 @@
 // Mise en forme commune à TOUS les exports .xlsx de l'application (ExcelJS, licence MIT).
-// Un seul endroit pour : en-tête agence + logo, tableau, types de données, impression.
-// Remplace SheetJS pour la génération : ses styles sont trop limités.
+// Une seule fonction d'en-tête (ecrireEnTete) pour la liste, la fiche identité,
+// les carnets de suivi et les rapports. Aucune mise en forme dupliquée ailleurs.
 
 import { Workbook, type Cell, type Worksheet } from 'exceljs';
 import { LOGO_ACSF_BASE64 } from './assets/acsf-logo-base64';
 import { CHARTE_COULEURS } from './charteCouleurs';
 
-export type TypeColonne = 'texte' | 'date' | 'nombre' | 'telephone' | 'statut';
+export type TypeColonne = 'texte' | 'date' | 'nombre' | 'telephone' | 'statut' | 'programme';
 
 export interface ColonneTableur {
   cle: string;
   libelle: string;
   type?: TypeColonne;
-  /** Largeur minimale en caractères (calculée automatiquement sinon). */
+  /** Largeur minimale en caractères (le calcul standard est contenu + 3). */
   largeur?: number;
 }
 
@@ -27,7 +27,7 @@ export interface OptionsTableur {
   libelleTotal?: string;
 }
 
-const LIGNE_TITRES = 6;
+const LIGNE_TITRES = 3;
 const MIME_XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
 // Une seule image de logo par classeur, réutilisée par tous les onglets.
@@ -59,7 +59,7 @@ const BORDURE_FINE = {
   right: { style: 'thin' as const, color: { argb: COULEURS.bordure } },
 };
 
-/* ---------- Utilitaires de format ---------- */
+/* ---------- Utilitaires de présentation (aucune donnée métier modifiée) ---------- */
 
 function deuxChiffres(n: number): string {
   return String(n).padStart(2, '0');
@@ -74,6 +74,11 @@ export function dateIso(date: Date = new Date()): string {
   return `${date.getFullYear()}-${deuxChiffres(date.getMonth() + 1)}-${deuxChiffres(date.getDate())}`;
 }
 
+/** Accord simple pour les libellés de quantité (« 1 passage », « 0 lignes »). */
+export function pluriel(n: number, singulier: string, pluriel: string): string {
+  return `${n} ${n === 1 ? singulier : pluriel}`;
+}
+
 function nettoyer(texte: string): string {
   return texte.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Za-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 }
@@ -84,15 +89,36 @@ export function nomFichierExport(titre: string, date: Date = new Date()): string
   return `ACSF_${base}_${dateIso(date)}.xlsx`;
 }
 
+const PROGRAMMES: Record<string, string> = {
+  SS: 'Soutien scolaire',
+  AF: 'Appui familial',
+  FP: 'Formation parents',
+};
+
+/** Libellé complet du programme (jamais l'abréviation technique). */
+export function libelleProgramme(valeur: unknown): string {
+  const brut = String(valeur ?? '').trim();
+  if (!brut || brut === '—' || brut === '-') return '';
+  return PROGRAMMES[brut.toUpperCase()] || brut;
+}
+
+/** Statut affiché : SUIVI en clair, quelle que soit la casse source. */
+export function libelleStatut(valeur: unknown): string {
+  const brut = String(valeur ?? '').trim();
+  if (!brut || brut === '—' || brut === '-') return '';
+  const cle = brut.toUpperCase();
+  if (['SUIVI', 'SUIVIE', 'SUIVI(E)', 'VALIDE', 'VALIDEE'].includes(cle)) return 'SUIVI';
+  return cle;
+}
+
 function versDate(valeur: unknown): Date | null {
   if (!valeur) return null;
   if (valeur instanceof Date) return isNaN(valeur.getTime()) ? null : valeur;
+  if (typeof valeur === 'object') return null;
   const texte = String(valeur).trim();
   if (!texte || texte === '—' || texte === '-') return null;
-  // ISO (AAAA-MM-JJ, éventuellement avec heure)
   let d = new Date(texte);
   if (!isNaN(d.getTime())) return d;
-  // Français jj/mm/aaaa
   const m = texte.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   if (m) {
     d = new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]));
@@ -117,22 +143,28 @@ export function normaliserTelephone(valeur: unknown): string {
 
 function valeurAffichee(valeur: unknown, type: TypeColonne | undefined): string {
   if (valeur === null || valeur === undefined) return '';
+  if (typeof valeur === 'object' && !(valeur instanceof Date)) return ''; // jamais de JSON brut
   const texte = String(valeur).trim();
-  if (!texte || texte === '—' || texte === '-') return '';
+  if (!texte || texte === '—' || texte === '-') return ''; // cellules vides laissées vides
   if (type === 'date') {
     const d = versDate(valeur);
-    if (!d) return '';
-    return `${deuxChiffres(d.getDate())}/${deuxChiffres(d.getMonth() + 1)}/${d.getFullYear()}`;
+    return d ? `${deuxChiffres(d.getDate())}/${deuxChiffres(d.getMonth() + 1)}/${d.getFullYear()}` : '';
   }
   if (type === 'telephone') return normaliserTelephone(valeur);
+  if (type === 'programme') return libelleProgramme(valeur);
+  if (type === 'statut') return libelleStatut(valeur);
   return texte;
 }
 
+/** Largeur = contenu le plus long + 3 caractères (marge pour la flèche de filtre). */
 function largeurColonne(colonne: ColonneTableur, lignes: Record<string, unknown>[]): number {
   let max = colonne.libelle.length;
   for (const ligne of lignes) max = Math.max(max, valeurAffichee(ligne[colonne.cle], colonne.type).length);
-  const plancher = colonne.type === 'date' ? 14 : colonne.type === 'telephone' ? 18 : 12;
-  return Math.min(Math.max(max + 3, colonne.largeur ?? plancher), 58);
+  return Math.min(Math.max(colonne.largeur ?? 0, max + 3), 60);
+}
+
+function lignesNecessaires(texte: string, largeur: number): number {
+  return Math.max(1, Math.ceil(texte.length / Math.max(8, largeur - 3)));
 }
 
 function lettreColonne(index: number): string {
@@ -146,75 +178,77 @@ function lettreColonne(index: number): string {
   return lettre;
 }
 
-function colorierPlage(ws: Worksheet, ligne: number, de: number, a: number, fond: string, texte: string, gras = false, taille = 11): void {
-  for (let c = de; c <= a; c++) {
-    const cellule = ws.getCell(ligne, c);
-    cellule.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: fond } };
-    cellule.font = { name: 'Calibri', size: taille, bold: gras, color: { argb: texte } };
+/* ---------- LA fonction d'en-tête, unique pour tous les exports ---------- */
+
+/**
+ * Écrit les deux premières lignes de l'en-tête (logo/agence/titre puis info).
+ * La ligne 3 est écrite par ajouterFeuilleTableur avec les titres de colonnes.
+ */
+function ecrireEnTete(
+  classeur: Workbook,
+  ws: Worksheet,
+  options: OptionsTableur,
+  nbColonnes: number,
+  largeurs: number[],
+): void {
+  // Logo réduit (~30 px de haut) dans la colonne A, sans chevauchement avec le texte.
+  ws.addImage(imageIdLogo(classeur), {
+    tl: { col: 0, row: 0 },
+    ext: { width: 26, height: 29 },
+  });
+
+  // Hauteur totale du bloc figé : 26 + 12 + ~24 pt ≈ 83 px (< 90 px).
+  ws.getRow(1).height = 26;
+  ws.getRow(2).height = 12;
+
+  // Répartition de la ligne 1 : agence à gauche, titre à droite.
+  const largeurTitre = Math.max(28, options.titre.length * 0.85);
+  let positionSplit = nbColonnes - 1;
+  let largeurDroite = 0;
+  for (let c = nbColonnes; c >= 3; c--) {
+    largeurDroite += largeurs[c - 1];
+    if (largeurDroite >= largeurTitre) {
+      positionSplit = c - 1;
+      break;
+    }
   }
-}
+  positionSplit = Math.max(2, Math.min(positionSplit, nbColonnes - 1));
 
-/* ---------- Construction d'une feuille ---------- */
+  if (nbColonnes >= 4) {
+    ws.mergeCells(1, 2, 1, positionSplit);
+    ws.mergeCells(1, positionSplit + 1, 1, nbColonnes);
 
-export function creerClasseur(titre: string, auteur: string): Workbook {
-  const classeur = new Workbook();
-  classeur.creator = auteur;
-  classeur.lastModifiedBy = auteur;
-  classeur.title = titre;
-  classeur.subject = 'Export confidentiel ACSF-AFRIQUE SARL';
-  classeur.company = 'ACSF-AFRIQUE SARL';
-  classeur.created = new Date();
-  classeur.modified = new Date();
-  return classeur;
-}
+    const agence = ws.getCell(1, 2);
+    agence.value = {
+      richText: [
+        { text: 'ACSF-AFRIQUE SARL', font: { name: 'Calibri', size: 11, bold: true, color: { argb: COULEURS.nuit } } },
+        { text: ' · Agence de Ouaga', font: { name: 'Calibri', size: 9, color: { argb: COULEURS.discret } } },
+      ],
+    };
+    agence.alignment = { vertical: 'middle', horizontal: 'left' };
 
-function ecrireEnTete(classeur: Workbook, ws: Worksheet, options: OptionsTableur, nbColonnes: number): void {
-  const maintenant = new Date();
-  const imageId = imageIdLogo(classeur);
-  ws.addImage(imageId, { tl: { col: 0, row: 0 }, ext: { width: 58, height: 65 } });
+    const titre = ws.getCell(1, positionSplit + 1);
+    titre.value = options.titre;
+    titre.font = { name: 'Calibri', size: 13, bold: true, color: { argb: COULEURS.nuit } };
+    titre.alignment = { vertical: 'middle', horizontal: 'right', wrapText: false };
+  }
 
-  ws.getRow(1).height = 68;
-  ws.getRow(2).height = 22;
-  ws.getRow(3).height = 34;
-  ws.getRow(4).height = 20;
-  ws.getRow(5).height = 10;
-
-  // Ligne 1 — nom de l'agence à côté du logo
-  if (nbColonnes > 2) ws.mergeCells(1, 2, 1, nbColonnes);
-  colorierPlage(ws, 1, 2, nbColonnes, COULEURS.blanc, COULEURS.nuit, true, 13);
-  const agence = ws.getCell(1, 2);
-  agence.value = 'ACSF-AFRIQUE SARL';
-  agence.alignment = { vertical: 'middle', horizontal: 'left' };
-
-  // Ligne 2 — mention de confidentialité
-  if (nbColonnes > 2) ws.mergeCells(2, 2, 2, nbColonnes);
-  colorierPlage(ws, 2, 2, nbColonnes, COULEURS.blanc, COULEURS.discret, false, 9);
-  const confidentiel = ws.getCell(2, 2);
-  confidentiel.value = 'Document confidentiel — usage interne';
-  confidentiel.alignment = { vertical: 'middle', horizontal: 'left' };
-
-  // Ligne 3 — titre centré, edition de la largeur totale
-  ws.mergeCells(3, 1, 3, nbColonnes);
-  colorierPlage(ws, 3, 1, nbColonnes, COULEURS.blanc, COULEURS.nuit, true, 16);
-  const titre = ws.getCell(3, 1);
-  titre.value = options.titre;
-  titre.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
-
-  // Ligne 4 — date, auteur, nombre de lignes, filtres
-  ws.mergeCells(4, 1, 4, nbColonnes);
-  colorierPlage(ws, 4, 1, nbColonnes, COULEURS.blanc, COULEURS.discret, false, 9);
+  // Ligne 2 — une seule ligne grise, taille 8, toutes les métadonnées.
+  if (nbColonnes > 1) ws.mergeCells(2, 1, 2, nbColonnes);
   const morceaux = [
-    `Exporté le ${horodatageFr(maintenant)}`,
+    `Exporté le ${horodatageFr()}`,
     `Par ${options.exportePar || 'utilisateur inconnu'}`,
-    `${options.lignes.length} ligne${options.lignes.length > 1 ? 's' : ''}`,
+    pluriel(options.lignes.length, 'ligne', 'lignes'),
+    'Document confidentiel — usage interne',
   ];
   if (options.filtres) morceaux.push(`Filtres : ${options.filtres}`);
-  const info = ws.getCell(4, 1);
+  const info = ws.getCell(2, 1);
   info.value = morceaux.join('  ·  ');
-  info.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
-
-  // Ligne 5 voulue vide (séparation avec le tableau)
+  info.font = { name: 'Calibri', size: 8, color: { argb: COULEURS.discret } };
+  info.alignment = { vertical: 'middle', horizontal: 'left', wrapText: false };
 }
+
+/* ---------- Cellules et feuille ---------- */
 
 function ecrireCellule(cellule: Cell, valeur: unknown, type: TypeColonne | undefined, alternance: boolean): void {
   cellule.border = BORDURE_FINE;
@@ -242,32 +276,48 @@ function ecrireCellule(cellule: Cell, valeur: unknown, type: TypeColonne | undef
     return;
   }
   if (type === 'statut') {
-    const statut = valeurAffichee(valeur, 'texte').toUpperCase();
+    const statut = libelleStatut(valeur);
     if (!statut) return;
     cellule.value = statut;
-    const estSuivi = statut === 'SUIVI' || statut === 'VALIDEE' || statut === 'SUIVIE';
+    const estSuivi = statut === 'SUIVI';
     cellule.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: estSuivi ? COULEURS.suiviFond : COULEURS.neutreFond } };
     cellule.font = { name: 'Calibri', size: 10, bold: true, color: { argb: estSuivi ? COULEURS.suiviTexte : COULEURS.neutreTexte } };
     return;
   }
-  const texte = valeurAffichee(valeur, 'texte');
+  const texte = valeurAffichee(valeur, type);
   if (texte) cellule.value = texte;
 }
 
-/** Ajoute une feuille complète : en-tête agence + tableau + pied + impression. */
+/** Ajoute une feuille complète : en-tête unique + tableau + pied + impression. */
 export function ajouterFeuilleTableur(classeur: Workbook, options: OptionsTableur): Worksheet {
   const colonnes: ColonneTableur[] = [{ cle: '_numero', libelle: 'N°', type: 'nombre', largeur: 7 }, ...options.colonnes];
   const nbColonnes = colonnes.length;
-  const ws = classeur.addWorksheet(options.nomOnglet.slice(0, 31) || 'Export', {
-    properties: { defaultRowHeight: 16 },
-    views: [{ state: 'frozen', ySplit: LIGNE_TITRES, topLeftCell: 'A7', activeCell: 'A7' }],
+  // ExcelJS considère la largeur 9 comme sa valeur par défaut et ne l'écrit alors
+  // pas dans <cols> : on l'écarte d'un dixième pour conserver la largeur calculée.
+  const largeurs: number[] = [];
+  colonnes.forEach((c) => {
+    const calculee = largeurColonne(c, options.lignes);
+    largeurs.push(calculee === 9 ? 9.1 : calculee);
   });
 
-  ecrireEnTete(classeur, ws, options, nbColonnes);
+  const ws = classeur.addWorksheet(options.nomOnglet.slice(0, 31) || 'Export', {
+    properties: { defaultRowHeight: 15 },
+    views: [{
+      state: 'frozen',
+      xSplit: 0,
+      ySplit: LIGNE_TITRES,
+      topLeftCell: 'A4',
+      activeCell: 'A4',
+      showGridLines: false,
+    }],
+  });
 
-  // Ligne 6 — titres de colonnes
+  ecrireEnTete(classeur, ws, options, nbColonnes, largeurs);
+
+  // Ligne 3 — titres de colonnes, hauteur adaptée au retour à la ligne.
   const ligneTitres = ws.getRow(LIGNE_TITRES);
-  ligneTitres.height = 32;
+  const lignesTitre = Math.max(...colonnes.map((c, i) => lignesNecessaires(c.libelle, largeurs[i])));
+  ligneTitres.height = Math.min(24, Math.max(20, lignesTitre * 12));
   colonnes.forEach((colonne, index) => {
     const cellule = ligneTitres.getCell(index + 1);
     cellule.value = colonne.libelle;
@@ -275,18 +325,22 @@ export function ajouterFeuilleTableur(classeur: Workbook, options: OptionsTableu
     cellule.font = { name: 'Calibri', size: 10, bold: true, color: { argb: COULEURS.blanc } };
     cellule.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
     cellule.border = BORDURE_FINE;
-    ws.getColumn(index + 1).width = largeurColonne(colonne, options.lignes);
+    ws.getColumn(index + 1).width = largeurs[index];
   });
 
-  // Données
+  // Données à partir de la ligne 4 — hauteur adaptée, aucun texte coupé.
   options.lignes.forEach((ligne, index) => {
     const row = ws.getRow(LIGNE_TITRES + 1 + index);
     row.getCell(1).value = index + 1;
     row.getCell(1).numFmt = '0';
     row.getCell(1).font = { name: 'Calibri', size: 10, color: { argb: COULEURS.texte } };
+    let nbLignes = 1;
     colonnes.slice(1).forEach((colonne, c) => {
+      const texte = valeurAffichee(ligne[colonne.cle], colonne.type);
+      if (texte) nbLignes = Math.max(nbLignes, lignesNecessaires(texte, largeurs[c + 1]));
       ecrireCellule(row.getCell(c + 2), ligne[colonne.cle], colonne.type, index % 2 === 1);
     });
+    row.height = Math.min(90, Math.max(15, nbLignes * 13));
     row.getCell(1).border = BORDURE_FINE;
     row.getCell(1).alignment = { vertical: 'top', horizontal: 'center' };
     if (index % 2 === 1) row.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COULEURS.fond } };
@@ -296,21 +350,22 @@ export function ajouterFeuilleTableur(classeur: Workbook, options: OptionsTableu
 
   // Pied de tableau
   if (options.libelleTotal) {
-    const pied = LIGNE_TITRES + options.lignes.length + 1;
+    const pied = derniereLigne + 1;
     ws.mergeCells(pied, 1, pied, nbColonnes);
-    colorierPlage(ws, pied, 1, nbColonnes, COULEURS.fond, COULEURS.nuit, true, 10);
     const cellule = ws.getCell(pied, 1);
     cellule.value = options.libelleTotal;
+    cellule.font = { name: 'Calibri', size: 10, bold: true, color: { argb: COULEURS.nuit } };
+    cellule.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COULEURS.fond } };
     cellule.alignment = { vertical: 'middle', horizontal: 'right' };
     for (let c = 1; c <= nbColonnes; c++) ws.getCell(pied, c).border = BORDURE_FINE;
   }
 
-  // Filtres sur la ligne de titres uniquement (pas sur le pied)
+  // Filtres sur la ligne des titres uniquement (pas sur le pied)
   if (options.lignes.length > 0) {
     ws.autoFilter = { from: { row: LIGNE_TITRES, column: 1 }, to: { row: derniereLigne, column: nbColonnes } };
   }
 
-  // Impression : paysage, une page de large, titres répétés, pied de page, zone utile
+  // Impression : paysage, une page de large, titres répétés, zone limitée aux colonnes utilisées
   const derniereColonne = lettreColonne(nbColonnes);
   const finImpression = options.libelleTotal ? derniereLigne + 1 : derniereLigne;
   ws.pageSetup = {
@@ -324,11 +379,23 @@ export function ajouterFeuilleTableur(classeur: Workbook, options: OptionsTableu
     printArea: `A1:${derniereColonne}${finImpression}`,
     printTitlesRow: `${LIGNE_TITRES}:${LIGNE_TITRES}`,
   };
-  ws.headerFooter.oddFooter = `&L ACSF-Afrique SARL — Confidentiel&R Page &P sur &N`;
+  ws.headerFooter.oddFooter = '&L ACSF-Afrique SARL — Confidentiel&R Page &P sur &N';
   ws.headerFooter.evenFooter = ws.headerFooter.oddFooter;
   ws.headerFooter.firstFooter = ws.headerFooter.oddFooter;
 
   return ws;
+}
+
+export function creerClasseur(titre: string, auteur: string): Workbook {
+  const classeur = new Workbook();
+  classeur.creator = auteur;
+  classeur.lastModifiedBy = auteur;
+  classeur.title = titre;
+  classeur.subject = 'Export confidentiel ACSF-AFRIQUE SARL';
+  classeur.company = 'ACSF-AFRIQUE SARL';
+  classeur.created = new Date();
+  classeur.modified = new Date();
+  return classeur;
 }
 
 /** Écrit le classeur et déclenche le téléchargement du .xlsx. */
