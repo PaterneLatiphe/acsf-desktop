@@ -40,7 +40,7 @@ Si `npm install` échoue à cause d'`electron` (gros téléchargement, réseau c
 ## Comprendre sans tout lire
 
 - `src/charte.css` — les couleurs ACSF (`--nuit #150A54`, `--jaune #FFF268`, `--vert #7AB444`, `--brique #B0390E`, `--fond #F6F7FB`). Si tu changes une couleur ici, tu changes tout le logiciel — et tu dois en parler à l'agence, c'est leur identité (logo officiel).
-- `src/main.tsx` — l'écran « Tableau de bord » et la **navigation latérale** (Personnes, Agenda, Offres, Conseils, Rapports). Pour l'instant, seul le Tableau de bord et l'écran Personnes (création + liste + dossier) existent vraiment ; les autres sont des coquilles « Bientôt ».
+- `src/App.tsx` — l'écran « Tableau de bord » et la **navigation latérale** (Personnes, Agenda, Offres, Rapports). Les cinq écrans du menu sont construits : Tableau de bord, Personnes (création + liste + dossier), Agenda, Offres et Rapports. L'ancien onglet « Conseils » a été retiré : les conseils donnés à une famille sont déjà saisis dans le dossier de la personne (volet Social : « Type de conseil » et « Conseil déclaré » ; volet Synthèse : « Remarques » ; volet Historique : type « Conseil »).
 - `electron/main.cjs` — ouvre la fenêtre. Rien de plus, volontairement.
 
 ## Comment on travaille ici (pour ne pas se retrouver coincé trois mois)

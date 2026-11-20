@@ -6,7 +6,7 @@ import { listerContributions, listerPersonnes, listerRdvs, type Personne, type R
 import { formaterDateFr, formaterDateHeureFr } from './format';
 import { IllustrationVide } from './Etats';
 
-type Ecran = 'tableau' | 'personnes' | 'agenda' | 'suivi' | 'conseils' | 'rapports';
+type Ecran = 'tableau' | 'personnes' | 'agenda' | 'suivi' | 'rapports';
 
 const TYPES_RDV: Record<string, string> = {
   rdv_agence: 'RDV agence',

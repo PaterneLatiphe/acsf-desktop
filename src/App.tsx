@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  LayoutDashboard, Users, CalendarDays, NotebookPen, Tag, BarChart3,
+  LayoutDashboard, Users, CalendarDays, Tag, BarChart3,
   Search, PanelLeftClose, PanelLeftOpen, Check, WifiOff,
 } from 'lucide-react';
 import logoAcsf from './assets/acsf-logo-signe.png';
@@ -14,14 +14,13 @@ import TableauDeBord from './TableauDeBord';
 import { Squelettes, IllustrationVide } from './Etats';
 import { UTILISATEUR } from './utilisateur';
 
-type Ecran = 'tableau' | 'personnes' | 'agenda' | 'suivi' | 'conseils' | 'rapports';
+type Ecran = 'tableau' | 'personnes' | 'agenda' | 'suivi' | 'rapports';
 
 const MENU: { cle: Ecran; libelle: string; icone: React.ReactNode }[] = [
   { cle: 'tableau', libelle: 'Tableau de bord', icone: <LayoutDashboard size={20} /> },
   { cle: 'personnes', libelle: 'Personnes', icone: <Users size={20} /> },
   { cle: 'agenda', libelle: 'Agenda', icone: <CalendarDays size={20} /> },
   { cle: 'suivi', libelle: 'Offres', icone: <Tag size={20} /> },
-  { cle: 'conseils', libelle: 'Conseils', icone: <NotebookPen size={20} /> },
   { cle: 'rapports', libelle: 'Rapports', icone: <BarChart3 size={20} /> },
 ];
 
