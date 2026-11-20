@@ -102,13 +102,19 @@ export function libelleProgramme(valeur: unknown): string {
   return PROGRAMMES[brut.toUpperCase()] || brut;
 }
 
-/** Statut affiché : SUIVI en clair, quelle que soit la casse source. */
+/** Statuts connus, en clair et sans dépendre de la casse ni des accents sources. */
+const STATUTS_EXCEL: Record<string, string> = {
+  SUIVI: 'SUIVI', SUIVIE: 'SUIVI', 'SUIVI(E)': 'SUIVI',
+  PROPOSE: 'PROPOSÉ', DEMANDE: 'DEMANDE', VALIDE: 'VALIDÉ', VALIDEE: 'VALIDÉE',
+  REFUSE: 'REFUSÉ', PENDING: 'À REVOIR', CORRIGEE: 'CORRIGÉE', REJETEE: 'REJETÉE',
+};
+
+/** Statut affiché : libellé métier complet, jamais une clé technique. */
 export function libelleStatut(valeur: unknown): string {
   const brut = String(valeur ?? '').trim();
   if (!brut || brut === '—' || brut === '-') return '';
-  const cle = brut.toUpperCase();
-  if (['SUIVI', 'SUIVIE', 'SUIVI(E)', 'VALIDE', 'VALIDEE'].includes(cle)) return 'SUIVI';
-  return cle;
+  const cle = brut.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
+  return STATUTS_EXCEL[cle] ?? brut.toUpperCase();
 }
 
 function versDate(valeur: unknown): Date | null {
@@ -117,6 +123,20 @@ function versDate(valeur: unknown): Date | null {
   if (typeof valeur === 'object') return null;
   const texte = String(valeur).trim();
   if (!texte || texte === '—' || texte === '-') return null;
+
+  // Les horaires saisis dans Agenda sont des heures locales « naïves »
+  // (AAAA-MM-JJTHH:mm). Les figer en UTC évite un décalage dans Excel
+  // lorsque le poste n'est pas au fuseau de l'agence.
+  const local = texte.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d+))?)?$/);
+  if (local) {
+    const millisecondes = Number((local[7] ?? '0').padEnd(3, '0').slice(0, 3));
+    const d = new Date(Date.UTC(
+      Number(local[1]), Number(local[2]) - 1, Number(local[3]),
+      Number(local[4]), Number(local[5]), Number(local[6] ?? 0), millisecondes,
+    ));
+    return isNaN(d.getTime()) ? null : d;
+  }
+
   let d = new Date(texte);
   if (!isNaN(d.getTime())) return d;
   const m = texte.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);

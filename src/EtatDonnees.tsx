@@ -56,9 +56,11 @@ export const Toast: React.FC<{
 export const StatutDonnees: React.FC<{
   affiches: number;
   total?: number;
+  /** Nombre de lignes retenues par les filtres, quand il diffère du total. */
+  selection?: number;
   enErreur?: boolean;
   onReessayer?: () => void;
-}> = ({ affiches, total, enErreur = false, onReessayer }) => (
+}> = ({ affiches, total, selection, enErreur = false, onReessayer }) => (
   <div className="statut-donnees" role="status" aria-live="polite">
     {enErreur ? (
       <>
@@ -74,6 +76,9 @@ export const StatutDonnees: React.FC<{
         {total === undefined
           ? `${affiches} résultat${affiches === 1 ? '' : 's'} affiché${affiches === 1 ? '' : 's'}.`
           : `${affiches} affiché${affiches === 1 ? '' : 's'} sur ${total}.`}
+        {selection !== undefined && total !== undefined
+          ? ` Sélection filtrée : ${selection} sur ${total}.`
+          : ''}
       </span>
     )}
   </div>

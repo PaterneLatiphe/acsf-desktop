@@ -83,7 +83,7 @@ function App() {
       case 'personnes': return <Personnes />;
       case 'agenda': return <Agenda />;
       case 'suivi': return <Offres />;
-      case 'rapports': return <Rapports />;
+      case 'rapports': return <Rapports onNaviguer={setEcran} />;
       default:
         return (
           <div className="page-enter">

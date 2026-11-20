@@ -33,7 +33,7 @@ copie de secours `acsf-db.bin.bak`. Aucune donnée n'est envoyée sur un serveur
 ## Export Excel
 
 Les exports (liste de personnes, carnet de suivi, rapports) produisent des `.xlsx`.
-Dans l'application Electron, une boîte **Enregistrer l'export ACSF** permet de choisir
+Dans l'application Electron, une boîte **Enregistrer l’export ACSF** permet de choisir
 le dossier et le nom du fichier. En mode `npm run dev` (navigateur), le téléchargement
 utilise le comportement standard du navigateur.
 

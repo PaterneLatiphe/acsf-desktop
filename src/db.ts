@@ -694,6 +694,29 @@ export async function listerContributions(personneId: number, voletType?: string
   });
 }
 
+export type ContributionAvecPersonne = Contribution & { personne: string };
+
+/** Toutes les contributions, avec le nom de la personne — évite un appel par dossier. */
+export async function listerToutesContributions(): Promise<ContributionAvecPersonne[]> {
+  const base = await ouvrirBase();
+  const resultat = base.exec(
+    `SELECT c.*, p.prenom || ' ' || p.nom AS personne
+     FROM contributions_famille c
+     JOIN personnes p ON p.id = c.personne_id
+     ORDER BY c.created_at, c.id`,
+  );
+  if (!resultat.length) return [];
+  const colonnes = resultat[0].columns;
+  return resultat[0].values.map((ligne) => {
+    const c = ligneEnObjet<ContributionAvecPersonne>(colonnes, ligne);
+    return {
+      ...c,
+      personneId: Number(c.personneId),
+      consentementId: c.consentementId ? Number(c.consentementId) : null,
+    };
+  });
+}
+
 export async function enregistrerContribution(personneId: number, voletType: string, champ: string, valeurDeclaree: string, consentementId: number | null): Promise<void> {
   const base = await ouvrirBase();
   const idPersonne = validerIdPersonne(personneId, 'enregistrerContribution');
