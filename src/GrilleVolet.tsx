@@ -33,21 +33,41 @@ function formaterDate(valeur: any): string {
   return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
 }
 
-// Aperçu d'une cellule : textarea tronqué sur la première ligne, tooltip complet
-function previewCell(col: any, params: any): string | HTMLElement {
+// Aperçu d'une cellule : textarea tronqué sur la première ligne, tooltip complet (composant React)
+function CellApercu({ col, params }: { col: any; params: any }) {
   const valeur = params?.value;
-  if (valeur === null || valeur === undefined || valeur === '') return '—';
-  if (col.type !== 'textarea') return String(valeur);
-  const texte = String(valeur);
+  if (valeur === null || valeur === undefined || valeur === '') {
+    return <span>—</span>;
+  }
+  let texte: string;
+  if (col?.type === 'date') {
+    texte = formaterDate(valeur);
+  } else if (col?.valueFormatter) {
+    texte = String(col.valueFormatter(params));
+  } else {
+    texte = String(valeur);
+  }
+  if (col?.type !== 'textarea') {
+    return <>{texte}</>;
+  }
   const lignes = texte.split('\n');
   const premier = lignes[0] || '';
   const reste = lignes.length > 1 ? ' ⏎' : '';
   const tronque = premier.length > 50 ? `${premier.slice(0, 50)}…` : premier;
-  const span = document.createElement('span');
-  span.textContent = `${tronque}${reste}`;
-  span.style.cssText = 'display:block;overflow:hidden;text-overflow:ellipsis;white-space:pre-line;color:var(--plume)';
-  span.title = texte.length > 120 ? `${texte.slice(0, 120)}…` : texte;
-  return span;
+  return (
+    <span
+      style={{
+        display: 'block',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'pre-line',
+        color: 'var(--plume)',
+      }}
+      title={texte.length > 120 ? `${texte.slice(0, 120)}…` : texte}
+    >
+      {`${tronque}${reste}`}
+    </span>
+  );
 }
 
 export const GrilleVolet: React.FC<GrilleVoletProps> = ({
@@ -81,7 +101,7 @@ export const GrilleVolet: React.FC<GrilleVoletProps> = ({
         ? { maxLength: 2000, rows: 6, cols: 50 }
         : undefined,
     cellEditorPopup: col.type === 'textarea',
-    cellRenderer: (params: any) => previewCell(col, params),
+    cellRenderer: (params: any) => <CellApercu col={col} params={params} />,
     valueFormatter: (params: any) => {
       if (params.value === null || params.value === undefined || params.value === '') return '—';
       if (col.type === 'date') return formaterDate(params.value);
