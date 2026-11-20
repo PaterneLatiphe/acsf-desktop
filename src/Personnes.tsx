@@ -179,6 +179,8 @@ const Personnes: React.FC<{ onChanger?: () => void }> = ({ onChanger }) => {
           onChange={(valeurs) => { setFormulaire(valeurs); if (Object.keys(erreurs).length) setErreurs({}); }}
           onFermer={() => setFormulaireOuvert(false)}
           onEnregistrer={enregistrer}
+          avecResumeErreurs
+          modeGuide
         />
       )}
       {toast && <Toast message={toast} onPause={mettreEnPause} onReprendre={reprendre} />}

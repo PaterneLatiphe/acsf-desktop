@@ -43,9 +43,11 @@ interface Props {
   onChange: (formulaire: Formulaire) => void;
   onFermer: () => void;
   onEnregistrer: (e: React.FormEvent) => void;
+  avecResumeErreurs?: boolean;
+  modeGuide?: boolean;
 }
 
-const FormulairePersonne: React.FC<Props> = ({ formulaire, erreurs, onChange, onFermer, onEnregistrer }) => (
+const FormulairePersonne: React.FC<Props> = ({ formulaire, erreurs, onChange, onFermer, onEnregistrer, avecResumeErreurs, modeGuide }) => (
   <FormulaireCadre
     titre="Nouvelle personne"
     sections={SECTIONS}
@@ -55,6 +57,8 @@ const FormulairePersonne: React.FC<Props> = ({ formulaire, erreurs, onChange, on
     onChange={onChange}
     onFermer={onFermer}
     onEnregistrer={onEnregistrer}
+    avecResumeErreurs={avecResumeErreurs}
+    modeGuide={modeGuide}
   />
 );
 

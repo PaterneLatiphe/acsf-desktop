@@ -205,6 +205,7 @@ const Agenda: React.FC = () => {
           onFermer={() => setFormulaireOuvert(false)}
           onEnregistrer={ajouter}
           libelleEnregistrer="Ajouter"
+          avecResumeErreurs
         />
       )}
 

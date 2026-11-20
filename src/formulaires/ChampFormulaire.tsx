@@ -59,6 +59,7 @@ const ChampFormulaire: React.FC<Props> = ({ champ, valeur, erreur, onChange }) =
         {type === 'telephone' && <span className="champ-indicatif">+226</span>}
         {type === 'select' ? (
           <select
+            id={`champ-${champ.cle}`}
             data-champ={champ.cle}
             value={valeurAffichee}
             disabled={champ.disabled}
@@ -72,6 +73,7 @@ const ChampFormulaire: React.FC<Props> = ({ champ, valeur, erreur, onChange }) =
           </select>
         ) : (
           <input
+            id={`champ-${champ.cle}`}
             data-champ={champ.cle}
             type={typeHtml[type]}
             value={valeurAffichee}

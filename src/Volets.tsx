@@ -671,6 +671,8 @@ const Volets: React.FC<VoletsProps> = ({ personneId, utilisateur, personne, onCh
             passages={passagesDuVolet}
             colonnes={colonnesVolet}
             libelle={LIBELLES[voletActif]}
+            avecSelecteurColonnes
+            avecDensite
             onCellValueChanged={onCellValueChanged}
             onGridReady={(params: any) => { gridApiRef.current = params.api; }}
             onGridDetached={() => { gridApiRef.current = null; }}

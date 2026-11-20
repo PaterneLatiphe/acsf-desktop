@@ -35,6 +35,49 @@
 /* Bandeau de sauvegarde : le texte porte le sens, l'icône ne fait que renforcer. */
 .etat-sauvegarde{display:inline-flex;align-items:center;gap:var(--sp-1);font-size:var(--petit)}
 
+/* Résumé d'erreurs : un titre, un lien par champ, messages en français clair. */
+.resume-erreurs{
+  margin-bottom:var(--sp-4);padding:var(--sp-3);
+  background:var(--erreur-fond);border:1px solid var(--erreur-texte);border-radius:var(--r-md);
+  color:var(--erreur-texte);font-size:12px;line-height:1.5;
+}
+.resume-erreurs b{display:block;font-weight:700;margin-bottom:var(--sp-1)}
+.resume-erreurs ul{margin:0;padding-left:var(--sp-4)}
+.resume-erreurs a{color:inherit;text-decoration:underline}
+.resume-erreurs a:focus-visible{outline:2px solid currentColor;outline-offset:2px}
+
+/* Formulaire guidé : étapes nommées, Navigation avant/arrière stable. */
+.formulaire-etapes{display:flex;flex-wrap:wrap;gap:var(--sp-2);margin-bottom:var(--sp-4)}
+.formulaire-etape{
+  display:inline-flex;align-items:center;gap:var(--sp-1);min-height:32px;
+  padding:var(--sp-1) var(--sp-3);border:1px solid var(--ligne);border-radius:var(--r-sm);
+  background:var(--feuille);color:var(--gris);font-size:var(--micro);font-weight:600;cursor:pointer;
+}
+.formulaire-etape span{
+  display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;
+  background:var(--nuit-08);color:var(--nuit);font-size:var(--micro);
+}
+.formulaire-etape.active{border-color:var(--nuit);color:var(--nuit);background:var(--jaune)}
+.formulaire-etape.active span{background:var(--nuit);color:var(--jaune)}
+
+/* Barre d'outils de la grille : sélecteur de colonnes et densité, sans toucher aux données. */
+.grille-volet.avec-outils{display:flex;flex-direction:column}
+.grille-volet.avec-outils>.ag-root-wrapper{flex:1 1 auto;min-height:0}
+.grille-outils{
+  display:flex;align-items:center;gap:var(--sp-2);flex-wrap:wrap;
+  flex:0 0 auto;min-height:32px;padding:2px var(--sp-2);
+  background:var(--feuille);border-bottom:1px solid var(--ligne);
+}
+.grille-outils .btn{min-height:28px}
+.selecteur-colonnes{display:flex;align-items:center;gap:var(--sp-2);flex-wrap:wrap;position:relative}
+.selecteur-colonnes-liste{
+  display:flex;flex-wrap:wrap;gap:var(--sp-2);padding:var(--sp-2);
+  background:var(--feuille);border:1px solid var(--ligne);border-radius:var(--r-md);
+  box-shadow:var(--ombre-2);z-index:20;
+}
+.selecteur-colonnes-liste label{display:inline-flex;align-items:center;gap:var(--sp-1);font-size:var(--micro);color:var(--gris)}
+.grille-confort .ag-cell{line-height:1.5}
+
 @media (prefers-reduced-motion:reduce){
   .toast,.etat-grille,.statut-donnees{transition:none}
 }

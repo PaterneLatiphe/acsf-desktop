@@ -1,8 +1,9 @@
 // Cadre partagé de toutes les fiches d'enregistrement : en-tête fixe, corps scrollable, pied fixe.
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
 import ChampFormulaire, { type ChampFormulaire as Champ } from './ChampFormulaire';
+import ResumeErreurs, { type ErreurResume } from './ResumeErreurs';
 
 export type { ChampFormulaire, OptionChamp } from './ChampFormulaire';
 
@@ -24,6 +25,8 @@ type Props = {
   onFermer: () => void;
   onEnregistrer: (e: React.FormEvent) => void;
   libelleEnregistrer?: string;
+  avecResumeErreurs?: boolean;
+  modeGuide?: boolean;
 };
 
 const FormulaireCadre: React.FC<Props> = ({
@@ -37,9 +40,29 @@ const FormulaireCadre: React.FC<Props> = ({
   onFermer,
   onEnregistrer,
   libelleEnregistrer = 'Enregistrer',
+  avecResumeErreurs = false,
+  modeGuide = false,
 }) => {
   const formRef = useRef<HTMLFormElement>(null);
   const depart = useRef<ValeursFormulaire>(valeursInitiales ?? valeurs);
+  const [etape, setEtape] = useState(0);
+  const guide = modeGuide && sections.length > 1;
+  const sectionsAffichees = guide ? [sections[Math.min(etape, sections.length - 1)]] : sections;
+
+  const listeErreurs: ErreurResume[] = Object.entries(erreurs)
+    .map(([cle, message]) => {
+      const champ = sections.flatMap((section) => section.champs).find((c) => c.cle === cle);
+      return champ && message ? { cle, libelle: champ.libelle, message } : null;
+    })
+    .filter((erreur): erreur is ErreurResume => erreur !== null);
+
+  const allerEtape = (index: number) => {
+    if (!guide || index < 0 || index >= sections.length) return;
+    setEtape(index);
+    window.requestAnimationFrame(() => {
+      formRef.current?.querySelector<HTMLElement>('.formulaire-section [data-champ]:not([disabled])')?.focus();
+    });
+  };
 
   useEffect(() => {
     formRef.current?.querySelector<HTMLElement>('[data-champ]:not([disabled])')?.focus();
@@ -48,8 +71,13 @@ const FormulaireCadre: React.FC<Props> = ({
   useEffect(() => {
     const premierInvalide = sections.flatMap((section) => section.champs).find((champ) => erreurs[champ.cle]);
     if (!premierInvalide) return;
+    const index = sections.findIndex((section) => section.champs.some((champ) => champ.cle === premierInvalide.cle));
+    if (guide && index >= 0 && index !== etape) {
+      setEtape(index);
+      return;
+    }
     formRef.current?.querySelector<HTMLElement>(`[data-champ="${premierInvalide.cle}"]`)?.focus();
-  }, [erreurs, sections]);
+  }, [erreurs, sections, guide, etape]);
 
   const modifie = Object.keys({ ...depart.current, ...valeurs })
     .some((cle) => (valeurs[cle] ?? '') !== (depart.current[cle] ?? ''));
@@ -102,7 +130,23 @@ const FormulaireCadre: React.FC<Props> = ({
         </header>
 
         <div className="formulaire-corps">
-          {sections.map((section) => (
+          {guide && (
+            <div className="formulaire-etapes" role="group" aria-label="Étapes du formulaire">
+              {sections.map((section, index) => (
+                <button
+                  key={section.titre}
+                  type="button"
+                  className={`formulaire-etape${index === etape ? ' active' : ''}`}
+                  aria-current={index === etape ? 'step' : undefined}
+                  onClick={() => allerEtape(index)}
+                >
+                  <span aria-hidden="true">{index + 1}</span> {section.titre}
+                </button>
+              ))}
+            </div>
+          )}
+          {avecResumeErreurs && <ResumeErreurs erreurs={listeErreurs} />}
+          {sectionsAffichees.map((section) => (
             <section className="formulaire-section" key={section.titre}>
               <h2 className="section-titre">{section.titre}</h2>
               <div className="grille-champs">
@@ -123,6 +167,16 @@ const FormulaireCadre: React.FC<Props> = ({
 
         <footer className="formulaire-pied">
           <div className="formulaire-actions">
+            {guide && (
+              <>
+                <button type="button" className="btn btn-secondaire" onClick={() => allerEtape(etape - 1)} disabled={etape === 0}>
+                  Étape précédente
+                </button>
+                <button type="button" className="btn btn-secondaire" onClick={() => allerEtape(etape + 1)} disabled={etape >= sections.length - 1}>
+                  Étape suivante
+                </button>
+              </>
+            )}
             <button type="button" className="btn btn-secondaire" onClick={fermer}>Annuler</button>
             <button type="submit" className="btn btn-principal">{libelleEnregistrer}</button>
           </div>
