@@ -83,6 +83,7 @@ export const OngletsVolets: React.FC<OngletsVoletsProps> = ({ voletActif, onChan
         const badge = v.cle !== 'synthese' && v.cle !== 'historique'
           ? passages.filter((p: any) => p.voletType === v.cle).length
           : '';
+        const avecBadge = badge !== '' && badge > 0;
         return (
           <button
             key={v.cle}
@@ -92,7 +93,7 @@ export const OngletsVolets: React.FC<OngletsVoletsProps> = ({ voletActif, onChan
             role="tab"
             aria-selected={voletActif === v.cle}
             aria-controls="volet-panneau"
-            aria-label={badge !== '' && badge > 0
+            aria-label={avecBadge
               ? `${v.libelle}, ${badge} passage${badge > 1 ? 's' : ''}`
               : v.libelle}
             tabIndex={voletActif === v.cle ? 0 : -1}
@@ -102,7 +103,7 @@ export const OngletsVolets: React.FC<OngletsVoletsProps> = ({ voletActif, onChan
           >
             {ICONES[v.cle]}
             <span>{v.libelle}</span>
-            {badge !== '' && badge > 0 && <span className="volet-tab-badge" aria-hidden="true">{badge}</span>}
+            {avecBadge && <span className="volet-tab-badge" aria-hidden="true">{badge}</span>}
           </button>
         );
       })}

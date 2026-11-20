@@ -1,6 +1,6 @@
 // Dialogue de confirmation accessible : focus contenu, Échap pour fermer, focus rendu à la fermeture.
 
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useId, useRef } from 'react';
 
 export interface DialogueConfirmationProps {
   titre: string;
@@ -21,6 +21,8 @@ export const DialogueConfirmation: React.FC<DialogueConfirmationProps> = ({
   onFermer,
   focusRetour,
 }) => {
+  const titreId = useId();
+  const messageId = useId();
   const modalRef = useRef<HTMLDivElement>(null);
   const boutonActionRef = useRef<HTMLButtonElement>(null);
   const focusInitialRef = useRef<HTMLElement | null>(null);
@@ -77,12 +79,12 @@ export const DialogueConfirmation: React.FC<DialogueConfirmationProps> = ({
         className="dialog-modal"
         role="dialog"
         aria-modal="true"
-        aria-labelledby="dialogue-titre"
-        aria-describedby="dialogue-message"
+        aria-labelledby={titreId}
+        aria-describedby={messageId}
         onKeyDown={surTouche}
       >
-        <b id="dialogue-titre">{titre}</b>
-        <p id="dialogue-message">{message}</p>
+        <b id={titreId}>{titre}</b>
+        <p id={messageId}>{message}</p>
         <div className="dialog-actions">
           <button type="button" className="btn btn-secondaire" onClick={annuler}>Annuler</button>
           <button type="button" className="btn btn-principal" ref={boutonActionRef} onClick={onAction}>{action}</button>

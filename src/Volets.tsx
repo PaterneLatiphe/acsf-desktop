@@ -9,7 +9,7 @@ import { VOLET_COLONNES } from './voletsConfig/voletsConfig';
 import { OngletsVolets } from './OngletsVolets';
 import { BandeauIdentite } from './BandeauIdentite';
 import { GrilleVolet } from './GrilleVolet';
-import { DialogueConfirmation } from './DialogueConfirmation';
+import { DialogueConfirmation, type DialogueConfirmationProps } from './DialogueConfirmation';
 import { exporterExcel } from './exportExcel';
 import {
   listerPassages,
@@ -49,15 +49,7 @@ type VoletsProps = {
 type Statut = 'idle' | 'saving' | 'saved' | 'error';
 
 type DernierChangement = { id: string; champ: string; valeur: string };
-type DialogConfirm = {
-  titre: string;
-  message: string;
-  action: string;
-  onAction: () => void;
-  onAnnuler?: () => void;
-  onFermer: () => void;
-  focusRetour?: HTMLElement | null;
-};
+type DialogConfirm = DialogueConfirmationProps;
 type EvolutionRecent = { id: string; cle: string; date: string; label: string; detail: string };
 
 function normaliserValeur(valeur: any): string {
@@ -238,9 +230,16 @@ const Volets: React.FC<VoletsProps> = ({ personneId, utilisateur, personne, onCh
   useEffect(() => {
     if (!menu) return undefined;
     menuBoutonRef.current?.focus();
+    const rendreFocus = () => {
+      const cible = focusAvantMenuRef.current;
+      if (cible?.isConnected) cible.focus();
+    };
     const fermer = (e: MouseEvent | KeyboardEvent) => {
       if (e instanceof KeyboardEvent) {
-        if (e.key === 'Escape') setMenu(null);
+        if (e.key === 'Escape') {
+          rendreFocus();
+          setMenu(null);
+        }
         return;
       }
       if (!menuRef.current?.contains(e.target as Node)) setMenu(null);
@@ -416,13 +415,19 @@ const Volets: React.FC<VoletsProps> = ({ personneId, utilisateur, personne, onCh
           signaler('saved');
           afficherToast('Passage supprimé');
           onChanger?.();
+          // La cellule d'origine appartient à la ligne supprimée : repositionner le focus.
+          window.setTimeout(() => {
+            const api = gridApiRef.current;
+            const colonne = colonnesVolet[0]?.cle;
+            if (colonne && api && !api.isDestroyed?.()) api.setFocusedCell?.(0, colonne);
+          }, 0);
         } catch {
           signaler('error');
           afficherToast('Suppression impossible');
         }
       },
     });
-  }, [utilisateur, voletActif, signaler, afficherToast, onChanger]);
+  }, [utilisateur, voletActif, colonnesVolet, signaler, afficherToast, onChanger]);
 
   const onCellContextMenu = useCallback((event: any) => {
     if (!event.data?._id) return;
@@ -712,17 +717,7 @@ const Volets: React.FC<VoletsProps> = ({ personneId, utilisateur, personne, onCh
         </div>
       )}
 
-      {dialog && (
-        <DialogueConfirmation
-          titre={dialog.titre}
-          message={dialog.message}
-          action={dialog.action}
-          onAction={dialog.onAction}
-          onAnnuler={dialog.onAnnuler}
-          onFermer={dialog.onFermer}
-          focusRetour={dialog.focusRetour}
-        />
-      )}
+      {dialog && <DialogueConfirmation {...dialog} />}
 
       {toast && <div role="status" className="toast">{toast}</div>}
     </div>
