@@ -197,7 +197,7 @@ function ecrireEnTete(
     ext: { width: 26, height: 29 },
   });
 
-  // Hauteur totale du bloc figé : 26 + 12 + ~24 pt ≈ 83 px (< 90 px).
+  // Hauteur totale de l'en-tête : 26 + 12 + ~24 pt ≈ 83 px.
   ws.getRow(1).height = 26;
   ws.getRow(2).height = 12;
 
@@ -303,12 +303,7 @@ export function ajouterFeuilleTableur(classeur: Workbook, options: OptionsTableu
 
   const ws = classeur.addWorksheet(options.nomOnglet.slice(0, 31) || 'Export', {
     properties: { defaultRowHeight: 15 },
-    views: [{
-      state: 'frozen',
-      xSplit: 0,
-      ySplit: LIGNE_TITRES,
-      showGridLines: false,
-    }],
+    views: [{ showGridLines: false }],
   });
 
   ecrireEnTete(classeur, ws, options, nbColonnes, largeurs);
@@ -376,7 +371,7 @@ export function ajouterFeuilleTableur(classeur: Workbook, options: OptionsTableu
     horizontalCentered: true,
     margins: { left: 0.35, right: 0.35, top: 0.6, bottom: 0.6, header: 0.25, footer: 0.3 },
     printArea: `A1:${derniereColonne}${finImpression}`,
-    printTitlesRow: `${LIGNE_TITRES}:${LIGNE_TITRES}`,
+    printTitlesRow: '1:3',
   };
   ws.headerFooter.oddFooter = '&L ACSF-Afrique SARL — Confidentiel&R Page &P sur &N';
   ws.headerFooter.evenFooter = ws.headerFooter.oddFooter;
