@@ -37,11 +37,16 @@ const HEURES = Array.from({ length: 48 }, (_, index) => {
 
 const RDV_VIDE = { personneId: '', type: 'rdv_agence', origine: 'proposition', date: '', heure: '', notes: '' };
 
+// Une longue liste reste lisible : on révèle les rendez-vous par lots de 20.
+const RDV_PAR_PAS = 20;
+
 const Agenda: React.FC = () => {
   const [rdvs, setRdvs] = useState<Rdv[]>([]);
   const [personnes, setPersonnes] = useState<Personne[]>([]);
   const [chargement, setChargement] = useState(true);
   const [typeFiltre, setTypeFiltre] = useState('');
+  const [limiteVenir, setLimiteVenir] = useState(RDV_PAR_PAS);
+  const [limitePasses, setLimitePasses] = useState(RDV_PAR_PAS);
   const [formulaireOuvert, setFormulaireOuvert] = useState(false);
   const [personneId, setPersonneId] = useState('');
   const [type, setType] = useState('rdv_agence');
@@ -71,6 +76,12 @@ const Agenda: React.FC = () => {
     recharger();
   }, []);
 
+  // Changer de filtre ramène l'affichage au premier lot : le compteur reste cohérent.
+  useEffect(() => {
+    setLimiteVenir(RDV_PAR_PAS);
+    setLimitePasses(RDV_PAR_PAS);
+  }, [typeFiltre]);
+
   const rdvsFiltres = typeFiltre ? rdvs.filter((r) => r.type === typeFiltre) : rdvs;
 
   // La date reste une donnée d'affichage : on sépare seulement ce qui est déjà passé.
@@ -81,6 +92,9 @@ const Agenda: React.FC = () => {
   };
   const aVenir = rdvsFiltres.filter((r) => !passe(r));
   const passes = rdvsFiltres.filter(passe);
+  const venirVisibles = aVenir.slice(0, limiteVenir);
+  const passesVisibles = passes.slice(0, limitePasses);
+  const rdvsAffiches = venirVisibles.length + passesVisibles.length;
   const attenteClient = rdvs.filter((r) => r.statut === 'propose');
   const attenteAgence = rdvs.filter((r) => r.statut === 'demande');
 
@@ -196,6 +210,32 @@ const Agenda: React.FC = () => {
     { titre: 'En attente de l’agence', note: 'Demandes faites par le client.', liste: attenteAgence },
   ].filter((file) => file.liste.length > 0);
 
+  const groupeRdv = (
+    titre: string,
+    liste: Rdv[],
+    visibles: Rdv[],
+    limite: number,
+    setLimite: React.Dispatch<React.SetStateAction<number>>,
+  ) => {
+    if (liste.length === 0) return null;
+    const restants = liste.length - limite;
+    return (
+      <section className="rdv-groupe">
+        <h2 className="section-titre">{titre}</h2>
+        {visibles.map(ligneRdv)}
+        {restants > 0 && (
+          <button
+            type="button"
+            className="btn btn-secondaire rdv-plus"
+            onClick={() => setLimite(limite + RDV_PAR_PAS)}
+          >
+            Afficher plus ({restants} restant{restants === 1 ? '' : 's'})
+          </button>
+        )}
+      </section>
+    );
+  };
+
   return (
     <div className="page-enter">
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-3)', flexWrap: 'wrap' }}>
@@ -211,7 +251,7 @@ const Agenda: React.FC = () => {
       {erreurChargement && <Erreur message={erreurChargement} onRetry={recharger} />}
 
       {!chargement && !erreurChargement && (
-        <StatutDonnees affiches={rdvsFiltres.length} total={rdvs.length} />
+        <StatutDonnees affiches={rdvsAffiches} total={rdvs.length} />
       )}
 
       <div className="grille">
@@ -246,18 +286,8 @@ const Agenda: React.FC = () => {
             />
           ) : (
             <>
-              {aVenir.length > 0 && (
-                <section className="rdv-groupe">
-                  <h2 className="section-titre">À venir</h2>
-                  {aVenir.map(ligneRdv)}
-                </section>
-              )}
-              {passes.length > 0 && (
-                <section className="rdv-groupe">
-                  <h2 className="section-titre">Passés</h2>
-                  {passes.map(ligneRdv)}
-                </section>
-              )}
+              {groupeRdv('À venir', aVenir, venirVisibles, limiteVenir, setLimiteVenir)}
+              {groupeRdv('Passés', passes, passesVisibles, limitePasses, setLimitePasses)}
             </>
           )}
         </div>

@@ -93,6 +93,7 @@
   text-transform:uppercase;letter-spacing:.06em;color:var(--nuit);
 }
 .rdv-file-note{margin:0 0 var(--sp-2);font-size:var(--micro);line-height:1.5;color:var(--gris)}
+.rdv-plus{display:flex;margin:var(--sp-3) auto 0}
 
 @media (prefers-reduced-motion:reduce){
   .toast,.etat-grille,.statut-donnees{transition:none}

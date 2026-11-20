@@ -30,6 +30,9 @@ est une décision prise par l'administrateur au moment de valider.
 
 - La liste est séparée en **À venir** et **Passés** ; un rendez-vous passé est marqué
   « · Passé ». Aucun tri SQL ni modification du modèle n'est nécessaire.
+- Quand il y a beaucoup de rendez-vous, chaque section affiche 20 lignes et un bouton
+  **Afficher plus** révèle les suivantes par lots de 20 ; le compteur indique le nombre
+  de lignes réellement affichées.
 - Chaque ligne en attente indique explicitement **En attente du client** ou
   **En attente de l'agence**.
 - Le bloc **Décisions en attente** présente deux files distinctes, chacune avec son
