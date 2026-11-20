@@ -4,6 +4,7 @@
 // Positionné en bas via flex order, toujours visible
 
 import React, { useRef } from 'react';
+
 import {
   LayoutDashboard,
   BookOpen,
@@ -51,7 +52,10 @@ export const OngletsVolets: React.FC<OngletsVoletsProps> = ({ voletActif, onChan
   const boutons = useRef<Record<string, HTMLButtonElement | null>>({});
 
   const focusVolet = (cle: string) => {
-    window.setTimeout(() => boutons.current[cle]?.focus());
+    window.setTimeout(() => {
+      if (document.querySelector('[aria-modal="true"]')) return;
+      boutons.current[cle]?.focus();
+    });
   };
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>) => {
@@ -84,8 +88,13 @@ export const OngletsVolets: React.FC<OngletsVoletsProps> = ({ voletActif, onChan
             key={v.cle}
             type="button"
             ref={(b) => { boutons.current[v.cle] = b; }}
+            id={`volet-onglet-${v.cle}`}
             role="tab"
             aria-selected={voletActif === v.cle}
+            aria-controls="volet-panneau"
+            aria-label={badge !== '' && badge > 0
+              ? `${v.libelle}, ${badge} passage${badge > 1 ? 's' : ''}`
+              : v.libelle}
             tabIndex={voletActif === v.cle ? 0 : -1}
             className={`volet-tab-bottom${voletActif === v.cle ? ' actif' : ''}`}
             onClick={() => onChangerVolet(v.cle)}
@@ -93,7 +102,7 @@ export const OngletsVolets: React.FC<OngletsVoletsProps> = ({ voletActif, onChan
           >
             {ICONES[v.cle]}
             <span>{v.libelle}</span>
-            {badge !== '' && badge > 0 && <span className="volet-tab-badge" aria-label={`${badge} passage(s)`}>{badge}</span>}
+            {badge !== '' && badge > 0 && <span className="volet-tab-badge" aria-hidden="true">{badge}</span>}
           </button>
         );
       })}

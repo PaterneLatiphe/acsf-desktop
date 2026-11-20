@@ -155,7 +155,7 @@
 .dossier-colonne{display:flex;flex-direction:column;height:100%;min-height:0}
 .dossier-barre{display:flex;align-items:center;gap:var(--sp-3);flex:0 0 auto;min-height:44px;padding:var(--sp-2) var(--sp-4);border-bottom:1px solid var(--ligne);overflow-x:auto;overflow-y:hidden}
 .dossier-barre .dossier-retour{flex:0 0 auto;min-height:32px;padding:4px 10px;font-size:var(--petit)}
-.bandeau-identite{display:flex;align-items:center;gap:var(--sp-2);flex:0 1 auto;min-width:0;overflow:hidden;white-space:nowrap}
+.bandeau-identite{display:flex;align-items:center;gap:var(--sp-2);flex:0 0 auto;white-space:nowrap}
 .bandeau-identite b{color:var(--nuit)}
 .bandeau-detail{font-size:var(--micro);color:var(--gris)}
 .dossier-titre{display:flex;align-items:baseline;gap:var(--sp-2);flex:0 0 auto;font-size:14px;font-weight:700;color:var(--nuit)}
@@ -183,6 +183,7 @@
 .recherche-synth{display:flex;align-items:center;gap:var(--sp-2);min-width:260px;max-width:380px;background:var(--feuille);border:1px solid var(--ligne);border-radius:var(--r-md);padding:var(--sp-1) var(--sp-2)}
 .recherche-synth input{flex:1;height:32px;border:none;background:transparent;outline:none;padding:0 var(--sp-1)}
 .recherche-synth input::placeholder{color:var(--gris-clair)}
+.filtre-volet:focus-within,.recherche-synth:focus-within{border-color:var(--nuit);box-shadow:0 0 0 3px var(--nuit-10)}
 .evolutions,.passages-recents{list-style:none;display:flex;flex-direction:column;gap:var(--sp-2)}
 .evo-tete{display:flex;align-items:center;gap:var(--sp-2);font-size:var(--petit);flex-wrap:wrap}
 .evo-tete b{color:var(--nuit)}

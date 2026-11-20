@@ -9,6 +9,7 @@ import { VOLET_COLONNES } from './voletsConfig/voletsConfig';
 import { OngletsVolets } from './OngletsVolets';
 import { BandeauIdentite } from './BandeauIdentite';
 import { GrilleVolet } from './GrilleVolet';
+import { DialogueConfirmation } from './DialogueConfirmation';
 import { exporterExcel } from './exportExcel';
 import {
   listerPassages,
@@ -54,6 +55,7 @@ type DialogConfirm = {
   action: string;
   onAction: () => void;
   onAnnuler?: () => void;
+  onFermer: () => void;
 };
 type EvolutionRecent = { id: string; cle: string; date: string; label: string; detail: string };
 
@@ -109,6 +111,8 @@ const Volets: React.FC<VoletsProps> = ({ personneId, utilisateur, personne, onCh
   const [nouvellesModifications, setNouvellesModifications] = useState(0);
   const gridApiRef = useRef<any>(null);
   const statutTimerRef = useRef<number | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const menuBoutonRef = useRef<HTMLButtonElement>(null);
 
   const afficherToast = useCallback((message: string) => {
     setToast(message);
@@ -184,6 +188,7 @@ const Volets: React.FC<VoletsProps> = ({ personneId, utilisateur, personne, onCh
         titre: 'Modifications en attente',
         message: `Des modifications ont été saisies. Voulez-vous enregistrer la dernière modification avant de passer au volet ${LIBELLES[suivant] ?? suivant} ?`,
         action: 'Enregistrer',
+        onFermer: () => setDialog(null),
         onAction: async () => {
           setDialog(null);
           await enregistrerDerniereModification();
@@ -202,6 +207,7 @@ const Volets: React.FC<VoletsProps> = ({ personneId, utilisateur, personne, onCh
         titre: 'Modifications en attente',
         message: 'Des modifications ont été saisies. Voulez-vous enregistrer la dernière modification avant de rafraîchir ?',
         action: 'Enregistrer',
+        onFermer: () => setDialog(null),
         onAction: async () => {
           setDialog(null);
           if (await enregistrerDerniereModification()) await chargerSaufStatut();
@@ -213,10 +219,17 @@ const Volets: React.FC<VoletsProps> = ({ personneId, utilisateur, personne, onCh
     await chargerSaufStatut();
   }, [nouvellesModifications, enregistrerDerniereModification, chargerSaufStatut]);
 
-  // Fermer le menu contextuel au clic ailleurs
+  // Menu contextuel : focus sur l'action, fermeture par Échap ou clic ailleurs.
   useEffect(() => {
     if (!menu) return undefined;
-    const fermer = () => setMenu(null);
+    menuBoutonRef.current?.focus();
+    const fermer = (e: MouseEvent | KeyboardEvent) => {
+      if (e instanceof KeyboardEvent) {
+        if (e.key === 'Escape') setMenu(null);
+        return;
+      }
+      if (!menuRef.current?.contains(e.target as Node)) setMenu(null);
+    };
     window.addEventListener('mousedown', fermer);
     window.addEventListener('keydown', fermer);
     return () => {
@@ -374,6 +387,7 @@ const Volets: React.FC<VoletsProps> = ({ personneId, utilisateur, personne, onCh
       titre: 'Supprimer ce passage ?',
       message: 'Cette suppression est tracée dans l’historique.',
       action: 'Supprimer',
+      onFermer: () => setDialog(null),
       onAction: async () => {
         setDialog(null);
         signaler('saving');
@@ -610,7 +624,7 @@ const Volets: React.FC<VoletsProps> = ({ personneId, utilisateur, personne, onCh
           <button type="button" className="btn btn-secondaire dossier-retour" onClick={onRetour}>← Retour</button>
         )}
         <BandeauIdentite personne={personne} />
-        <span className="dossier-titre">{LIBELLES[voletActif]}<small>{libelleStatut}</small></span>
+        <span className="dossier-titre">{LIBELLES[voletActif]}<small role="status" aria-live="polite">{libelleStatut}</small></span>
         <div className="actions">
           {peutAjouter && (
             <button type="button" className="btn btn-secondaire" onClick={ajouterPassage}>
@@ -627,7 +641,7 @@ const Volets: React.FC<VoletsProps> = ({ personneId, utilisateur, personne, onCh
       </div>
 
       {/* Zone centrale : seule la grille défile */}
-      <div className="dossier-zone">
+      <div className="dossier-zone" id="volet-panneau" role="tabpanel" aria-labelledby={`volet-onglet-${voletActif}`}>
         {voletActif === 'synthese' && vueSynthese}
         {voletActif === 'historique' && vueHistorique}
         {voletVerrouille && vueSpiritualiteVerrouillee}
@@ -635,6 +649,7 @@ const Volets: React.FC<VoletsProps> = ({ personneId, utilisateur, personne, onCh
           <GrilleVolet
             passages={passagesDuVolet}
             colonnes={colonnesVolet}
+            libelle={LIBELLES[voletActif]}
             onCellValueChanged={onCellValueChanged}
             onGridReady={(params: any) => { gridApiRef.current = params.api; }}
             onGridDetached={() => { gridApiRef.current = null; }}
@@ -651,6 +666,9 @@ const Volets: React.FC<VoletsProps> = ({ personneId, utilisateur, personne, onCh
 
       {menu && (
         <div
+          ref={menuRef}
+          role="menu"
+          aria-label="Actions de la ligne"
           style={{
             position: 'fixed',
             top: menu.y,
@@ -664,7 +682,9 @@ const Volets: React.FC<VoletsProps> = ({ personneId, utilisateur, personne, onCh
           }}
         >
           <button
+            ref={menuBoutonRef}
             type="button"
+            role="menuitem"
             className="btn btn-secondaire"
             style={{ minHeight: 32, padding: '4px 10px', fontSize: '.8rem' }}
             onClick={() => supprimerLigne(menu.id)}
@@ -675,18 +695,14 @@ const Volets: React.FC<VoletsProps> = ({ personneId, utilisateur, personne, onCh
       )}
 
       {dialog && (
-        <div className="dialog-overlay" role="dialog" aria-modal="true" aria-label={dialog.titre}>
-          <div className="dialog-modal">
-            <b>{dialog.titre}</b>
-            <p>{dialog.message}</p>
-            <div className="dialog-actions">
-              {dialog.onAnnuler && (
-                <button type="button" className="btn btn-secondaire" onClick={dialog.onAnnuler}>Annuler</button>
-              )}
-              <button type="button" className="btn btn-principal" onClick={dialog.onAction}>{dialog.action}</button>
-            </div>
-          </div>
-        </div>
+        <DialogueConfirmation
+          titre={dialog.titre}
+          message={dialog.message}
+          action={dialog.action}
+          onAction={dialog.onAction}
+          onAnnuler={dialog.onAnnuler}
+          onFermer={dialog.onFermer}
+        />
       )}
 
       {toast && <div role="status" className="toast">{toast}</div>}

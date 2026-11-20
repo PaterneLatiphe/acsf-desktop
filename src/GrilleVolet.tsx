@@ -20,6 +20,7 @@ export interface ColonneVolet {
 export interface GrilleVoletProps {
   passages: any[];
   colonnes: ColonneVolet[];
+  libelle?: string;
   onCellValueChanged?: (event: any) => void;
   onGridReady?: (params: any) => void;
   onGridDetached?: () => void;
@@ -74,12 +75,12 @@ function CellApercu({ col, params }: { col: any; params: any }) {
 export const GrilleVolet: React.FC<GrilleVoletProps> = ({
   passages,
   colonnes,
+  libelle = 'volet',
   onCellValueChanged,
   onGridReady,
   onGridDetached,
   onCellContextMenu,
 }) => {
-  const conteneurRef = useRef<HTMLDivElement>(null);
   const apiRef = useRef<any>(null);
   const detacheRef = useRef(onGridDetached);
   detacheRef.current = onGridDetached;
@@ -144,25 +145,32 @@ export const GrilleVolet: React.FC<GrilleVoletProps> = ({
 
   const handleGridReady = useCallback((params: any) => {
     apiRef.current = params.api;
-    params.api?.sizeColumnsToFit?.();
+    params.api?.setGridAriaProperty?.('label', `Grille du volet ${libelle}`);
     onGridReady?.(params);
-  }, [onGridReady]);
+  }, [libelle, onGridReady]);
 
-  const handleGridSizeChanged = useCallback((params: any) => {
-    params.api?.sizeColumnsToFit?.();
-  }, []);
-
-  // Le redimensionnement de la fenêtre et le changement d'onglet redessinent la grille
   useEffect(() => {
-    const element = conteneurRef.current;
-    if (!element || typeof ResizeObserver === 'undefined') return undefined;
-    const observateur = new ResizeObserver(() => {
-      apiRef.current?.onGridHeightChanged?.();
-      apiRef.current?.sizeColumnsToFit?.();
+    apiRef.current?.setGridAriaProperty?.('label', `Grille du volet ${libelle}`);
+  }, [libelle]);
+
+  // Le menu « Supprimer » est aussi accessible au clavier (Maj+F10 ou touche Menu).
+  const handleCellKeyDown = useCallback((event: any) => {
+    if (!onCellContextMenu) return;
+    const touche = event.event as KeyboardEvent | undefined;
+    if (!touche) return;
+    const estMenu = touche.key === 'ContextMenu' || (touche.shiftKey && touche.key === 'F10');
+    if (!estMenu || event.api?.getEditingCells?.().length) return;
+    touche.preventDefault?.();
+    const rect = (touche.target as HTMLElement | null)?.getBoundingClientRect?.();
+    onCellContextMenu({
+      data: event.data,
+      event: {
+        clientX: rect?.left ?? 0,
+        clientY: rect?.bottom ?? 0,
+        preventDefault: () => touche.preventDefault?.(),
+      },
     });
-    observateur.observe(element);
-    return () => observateur.disconnect();
-  }, []);
+  }, [onCellContextMenu]);
 
   useEffect(() => () => {
     apiRef.current = null;
@@ -189,7 +197,7 @@ export const GrilleVolet: React.FC<GrilleVoletProps> = ({
   }, [colonnes]);
 
   return (
-    <div ref={conteneurRef} className="ag-theme-quartz grille-volet">
+    <div className="ag-theme-quartz grille-volet">
       <AgGridReact
         rowData={passagesForGrid}
         columnDefs={columnDefs}
@@ -206,12 +214,12 @@ export const GrilleVolet: React.FC<GrilleVoletProps> = ({
         }}
         onCellValueChanged={handleCellValueChanged}
         onGridReady={handleGridReady}
-        onGridSizeChanged={handleGridSizeChanged}
+        onCellKeyDown={handleCellKeyDown}
         onCellContextMenu={onCellContextMenu}
         undoRedoCellEditing={true}
         undoRedoCellEditingLimit={20}
         stopEditingWhenCellsLoseFocus={true}
-        rowSelection="single"
+        rowSelection={{ mode: 'singleRow' }}
         animateRows={false}
         domLayout="normal"
         theme="legacy"
