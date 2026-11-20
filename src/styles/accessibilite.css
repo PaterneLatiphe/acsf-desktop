@@ -86,6 +86,13 @@
   font-size:var(--micro);line-height:1.5;color:var(--gris);
 }
 .rdv-attente-ligne:last-of-type{border-bottom:0}
+.rdv-attente{color:var(--alerte-texte);font-weight:600}
+.rdv-files{display:flex;flex-direction:column;gap:var(--sp-4)}
+.rdv-file-titre{
+  margin:0 0 var(--sp-1);font-size:var(--micro);font-weight:800;
+  text-transform:uppercase;letter-spacing:.06em;color:var(--nuit);
+}
+.rdv-file-note{margin:0 0 var(--sp-2);font-size:var(--micro);line-height:1.5;color:var(--gris)}
 
 @media (prefers-reduced-motion:reduce){
   .toast,.etat-grille,.statut-donnees{transition:none}

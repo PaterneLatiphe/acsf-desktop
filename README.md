@@ -36,3 +36,9 @@ Les exports (liste de personnes, carnet de suivi, rapports) produisent des `.xls
 Dans l'application Electron, une boîte **Enregistrer l'export ACSF** permet de choisir
 le dossier et le nom du fichier. En mode `npm run dev` (navigateur), le téléchargement
 utilise le comportement standard du navigateur.
+
+## Rendez-vous
+
+Les règles de proposition et de validation des rendez-vous (décision côté client ou côté
+agence, APK client, validation directe par l'administrateur) sont décrites dans
+[REGLES-RDV.md](REGLES-RDV.md).

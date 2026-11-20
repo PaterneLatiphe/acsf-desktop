@@ -20,7 +20,14 @@ const LIBELLES_STATUT: Record<string, string> = {
   refuse: 'REFUSÉ',
 };
 
-const RDV_VIDE = { personneId: '', type: 'rdv_agence', dateHeure: '', notes: '' };
+// L'origine du RDV détermine qui doit décider. Le statut stocké suffit :
+// 'propose' = proposition de l'agence, 'demande' = demande du client.
+const ORIGINES: { cle: string; libelle: string; statut: string }[] = [
+  { cle: 'proposition', libelle: 'Proposition de l’agence — le client validera', statut: 'propose' },
+  { cle: 'demande', libelle: 'Demande du client — l’agence validera', statut: 'demande' },
+];
+
+const RDV_VIDE = { personneId: '', type: 'rdv_agence', origine: 'proposition', dateHeure: '', notes: '' };
 
 const Agenda: React.FC = () => {
   const [rdvs, setRdvs] = useState<Rdv[]>([]);
@@ -30,6 +37,7 @@ const Agenda: React.FC = () => {
   const [formulaireOuvert, setFormulaireOuvert] = useState(false);
   const [personneId, setPersonneId] = useState('');
   const [type, setType] = useState('rdv_agence');
+  const [origine, setOrigine] = useState('proposition');
   const [dateHeure, setDateHeure] = useState('');
   const [notes, setNotes] = useState('');
   const [erreurs, setErreurs] = useState<Record<string, string>>({});
@@ -64,7 +72,8 @@ const Agenda: React.FC = () => {
   };
   const aVenir = rdvsFiltres.filter((r) => !passe(r));
   const passes = rdvsFiltres.filter(passe);
-  const enAttente = rdvs.filter((r) => r.statut === 'demande' || r.statut === 'propose');
+  const attenteClient = rdvs.filter((r) => r.statut === 'propose');
+  const attenteAgence = rdvs.filter((r) => r.statut === 'demande');
 
   const ouvrirFormulaire = () => {
     setErreurs({});
@@ -78,14 +87,16 @@ const Agenda: React.FC = () => {
     if (!dateHeure) invalides.dateHeure = 'Choisissez une date et une heure.';
     setErreurs(invalides);
     if (Object.keys(invalides).length > 0) return;
+    const origineChoisie = ORIGINES.find((o) => o.cle === origine) ?? ORIGINES[0];
     try {
-      await creerRdv({ personneId: Number(personneId), type, statut: 'propose', dateHeure, notes: notes.trim() });
+      await creerRdv({ personneId: Number(personneId), type, statut: origineChoisie.statut, dateHeure, notes: notes.trim() });
     } catch {
       afficherToast('Le rendez-vous n’a pas pu être enregistré. Réessayez.');
       return;
     }
     setFormulaireOuvert(false);
     setPersonneId('');
+    setOrigine('proposition');
     setDateHeure('');
     setNotes('');
     setErreurs({});
@@ -94,10 +105,14 @@ const Agenda: React.FC = () => {
   };
 
   const changer = async (id: number, statut: string) => {
+    const rdv = rdvs.find((r) => r.id === id);
+    const message = statut === 'valide'
+      ? 'Rendez-vous validé.'
+      : rdv?.statut === 'propose' ? 'Proposition annulée.' : 'Demande refusée.';
     try {
       await changerStatutRdv(id, statut);
       await recharger();
-      afficherToast(statut === 'valide' ? 'Rendez-vous validé.' : 'Rendez-vous refusé.');
+      afficherToast(message);
     } catch {
       afficherToast('La mise à jour du rendez-vous a échoué. Réessayez.');
     }
@@ -123,19 +138,28 @@ const Agenda: React.FC = () => {
           ],
         },
         { cle: 'type', libelle: 'Type', type: 'select', obligatoire: true, options: TYPES.map((t) => ({ valeur: t.cle, libelle: t.libelle })) },
+        {
+          cle: 'origine', libelle: 'Origine', type: 'select', obligatoire: true,
+          options: ORIGINES.map((o) => ({ valeur: o.cle, libelle: o.libelle })),
+        },
         { cle: 'dateHeure', libelle: 'Date et heure', type: 'datetime', obligatoire: true, indications: 'jj/mm/aaaa · hh:mm' },
         { cle: 'notes', libelle: 'Notes', placeholder: 'Sujet, lieu, consignes…' },
       ],
     },
   ], [personnes]);
 
-  const valeursRdv = { personneId, type, dateHeure, notes };
+  const valeursRdv = { personneId, type, origine, dateHeure, notes };
 
   const ligneRdv = (r: Rdv) => (
     <div className="ligne" key={r.id}>
       <div className="info" style={{ flex: 1, minWidth: 0 }}>
         <b>{nomPersonne(r.personneId)}</b>
         <small>{dateAffichee(r)}{passe(r) ? ' · Passé' : ''}</small>
+        {(r.statut === 'propose' || r.statut === 'demande') && (
+          <small className="rdv-attente">
+            {r.statut === 'propose' ? 'En attente du client' : 'En attente de l’agence'}
+          </small>
+        )}
       </div>
       <span className="pill rdv">{TYPES.find((t) => t.cle === r.type)?.libelle ?? r.type}</span>
       <span className={`pill ${r.statut === 'valide' ? 'ok' : r.statut === 'refuse' ? 'ret' : 'pend'}`}>{LIBELLES_STATUT[r.statut] ?? r.statut.toUpperCase()}</span>
@@ -145,12 +169,17 @@ const Agenda: React.FC = () => {
             Valider
           </button>
           <button type="button" className="btn btn-secondaire" onClick={() => changer(r.id, 'refuse')}>
-            Refuser
+            {r.statut === 'propose' ? 'Annuler' : 'Refuser'}
           </button>
         </span>
       )}
     </div>
   );
+
+  const filesAttente = [
+    { titre: 'En attente du client', note: 'Propositions faites par l’agence.', liste: attenteClient },
+    { titre: 'En attente de l’agence', note: 'Demandes faites par le client.', liste: attenteAgence },
+  ].filter((file) => file.liste.length > 0);
 
   return (
     <div className="page-enter">
@@ -223,25 +252,29 @@ const Agenda: React.FC = () => {
             Décisions en attente
             <button type="button" className="lien-bloc" onClick={ouvrirFormulaire}>Ouvrir le formulaire →</button>
           </div>
-          {enAttente.length === 0 ? (
+          {filesAttente.length === 0 ? (
             <div className="vide">
               <CalendarDays size={40} />
               <b>Aucune décision en attente.</b>
               Les demandes et propositions apparaîtront ici.
             </div>
           ) : (
-            <div className="vide">
-              <CalendarDays size={40} />
-              <b>{enAttente.length} décision{enAttente.length === 1 ? '' : 's'} en attente.</b>
-              {enAttente.slice(0, 3).map((r) => (
-                <div className="rdv-attente-ligne" key={r.id}>
-                  {nomPersonne(r.personneId)} · {dateAffichee(r)}
-                </div>
+            <div className="rdv-files">
+              {filesAttente.map((file) => (
+                <section className="rdv-file" key={file.titre}>
+                  <h3 className="rdv-file-titre">{file.titre} · {file.liste.length}</h3>
+                  <p className="rdv-file-note">{file.note}</p>
+                  {file.liste.slice(0, 3).map((r) => (
+                    <div className="rdv-attente-ligne" key={r.id}>
+                      {nomPersonne(r.personneId)} · {dateAffichee(r)}
+                    </div>
+                  ))}
+                  {file.liste.length > 3 && (
+                    <div className="rdv-attente-ligne">Et {file.liste.length - 3} autre{file.liste.length - 3 === 1 ? '' : 's'}…</div>
+                  )}
+                </section>
               ))}
-              {enAttente.length > 3 && (
-                <div className="rdv-attente-ligne">Et {enAttente.length - 3} autre{enAttente.length - 3 === 1 ? '' : 's'}…</div>
-              )}
-              Utilisez « Valider » ou « Refuser » dans la liste.
+              <p className="rdv-file-note">Utilisez « Valider », « Annuler » ou « Refuser » dans la liste.</p>
             </div>
           )}
         </div>
@@ -257,6 +290,7 @@ const Agenda: React.FC = () => {
           onChange={(valeurs) => {
             setPersonneId(valeurs.personneId);
             setType(valeurs.type);
+            setOrigine(valeurs.origine);
             setDateHeure(valeurs.dateHeure);
             setNotes(valeurs.notes);
             if (Object.keys(erreurs).length) setErreurs({});
