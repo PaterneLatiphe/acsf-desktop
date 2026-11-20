@@ -3,7 +3,7 @@ import { CalendarDays, UserRoundPlus } from 'lucide-react';
 import { changerStatutRdv, creerRdv, listerPersonnes, listerRdvs, type Personne, type Rdv } from './db';
 import { formaterDateHeureFr } from './format';
 import { Erreur } from './Etats';
-import { Toast } from './EtatDonnees';
+import { EtatVide, StatutDonnees, Toast } from './EtatDonnees';
 import { useToast } from './useToast';
 import FormulaireCadre, { type SectionFormulaire } from './formulaires/FormulaireCadre';
 
@@ -56,6 +56,16 @@ const Agenda: React.FC = () => {
 
   const rdvsFiltres = typeFiltre ? rdvs.filter((r) => r.type === typeFiltre) : rdvs;
 
+  // La date reste une donnée d'affichage : on sépare seulement ce qui est déjà passé.
+  const maintenant = Date.now();
+  const passe = (r: Rdv): boolean => {
+    const temps = new Date(r.dateHeure).getTime();
+    return !Number.isNaN(temps) && temps < maintenant;
+  };
+  const aVenir = rdvsFiltres.filter((r) => !passe(r));
+  const passes = rdvsFiltres.filter(passe);
+  const enAttente = rdvs.filter((r) => r.statut === 'demande' || r.statut === 'propose');
+
   const ouvrirFormulaire = () => {
     setErreurs({});
     setFormulaireOuvert(true);
@@ -68,7 +78,12 @@ const Agenda: React.FC = () => {
     if (!dateHeure) invalides.dateHeure = 'Choisissez une date et une heure.';
     setErreurs(invalides);
     if (Object.keys(invalides).length > 0) return;
-    await creerRdv({ personneId: Number(personneId), type, statut: 'propose', dateHeure, notes: notes.trim() });
+    try {
+      await creerRdv({ personneId: Number(personneId), type, statut: 'propose', dateHeure, notes: notes.trim() });
+    } catch {
+      afficherToast('Le rendez-vous n’a pas pu être enregistré. Réessayez.');
+      return;
+    }
     setFormulaireOuvert(false);
     setPersonneId('');
     setDateHeure('');
@@ -79,8 +94,13 @@ const Agenda: React.FC = () => {
   };
 
   const changer = async (id: number, statut: string) => {
-    await changerStatutRdv(id, statut);
-    await recharger();
+    try {
+      await changerStatutRdv(id, statut);
+      await recharger();
+      afficherToast(statut === 'valide' ? 'Rendez-vous validé.' : 'Rendez-vous refusé.');
+    } catch {
+      afficherToast('La mise à jour du rendez-vous a échoué. Réessayez.');
+    }
   };
 
   const nomPersonne = (id: number): string => {
@@ -111,6 +131,27 @@ const Agenda: React.FC = () => {
 
   const valeursRdv = { personneId, type, dateHeure, notes };
 
+  const ligneRdv = (r: Rdv) => (
+    <div className="ligne" key={r.id}>
+      <div className="info" style={{ flex: 1, minWidth: 0 }}>
+        <b>{nomPersonne(r.personneId)}</b>
+        <small>{dateAffichee(r)}{passe(r) ? ' · Passé' : ''}</small>
+      </div>
+      <span className="pill rdv">{TYPES.find((t) => t.cle === r.type)?.libelle ?? r.type}</span>
+      <span className={`pill ${r.statut === 'valide' ? 'ok' : r.statut === 'refuse' ? 'ret' : 'pend'}`}>{LIBELLES_STATUT[r.statut] ?? r.statut.toUpperCase()}</span>
+      {(r.statut === 'demande' || r.statut === 'propose') && (
+        <span style={{ display: 'flex', gap: 'var(--sp-2)' }}>
+          <button type="button" className="btn btn-secondaire" onClick={() => changer(r.id, 'valide')}>
+            Valider
+          </button>
+          <button type="button" className="btn btn-secondaire" onClick={() => changer(r.id, 'refuse')}>
+            Refuser
+          </button>
+        </span>
+      )}
+    </div>
+  );
+
   return (
     <div className="page-enter">
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-3)', flexWrap: 'wrap' }}>
@@ -125,10 +166,14 @@ const Agenda: React.FC = () => {
 
       {erreurChargement && <Erreur message={erreurChargement} onRetry={recharger} />}
 
+      {!chargement && !erreurChargement && (
+        <StatutDonnees affiches={rdvsFiltres.length} total={rdvs.length} />
+      )}
+
       <div className="grille">
         <div className="bloc">
           <div className="bloc-titre">
-            Prochain rendez-vous
+            Rendez-vous
             <select
               value={typeFiltre}
               onChange={(e) => setTypeFiltre(e.target.value)}
@@ -146,45 +191,59 @@ const Agenda: React.FC = () => {
               <div className="skel skel-ligne" />
             </div>
           ) : rdvsFiltres.length === 0 ? (
-            <div className="vide">
-              <CalendarDays size={40} />
-              <b>Aucun rendez-vous</b>
-              Aucun rendez-vous planifié pour l'instant. Les rendez-vous de la famille ou de l'agence apparaîtront ici.
-            </div>
+            <EtatVide
+              titre={typeFiltre ? 'Aucun rendez-vous de ce type.' : 'Aucun rendez-vous.'}
+              message={typeFiltre
+                ? 'Essayez un autre type de rendez-vous.'
+                : 'Les rendez-vous de la famille ou de l’agence apparaîtront ici.'}
+              action={typeFiltre
+                ? { libelle: 'Effacer le filtre', onClick: () => setTypeFiltre('') }
+                : { libelle: 'Nouveau rendez-vous', onClick: ouvrirFormulaire }}
+            />
           ) : (
-            rdvsFiltres.map((r) => (
-              <div className="ligne" key={r.id}>
-                <div className="info" style={{ flex: 1, minWidth: 0 }}>
-                  <b>{nomPersonne(r.personneId)}</b>
-                  <small>{dateAffichee(r)}</small>
-                </div>
-                <span className="pill rdv">{TYPES.find((t) => t.cle === r.type)?.libelle ?? r.type}</span>
-                <span className={`pill ${r.statut === 'valide' ? 'ok' : r.statut === 'refuse' ? 'ret' : 'pend'}`}>{LIBELLES_STATUT[r.statut] ?? r.statut.toUpperCase()}</span>
-                {(r.statut === 'demande' || r.statut === 'propose') && (
-                  <span style={{ display: 'flex', gap: 'var(--sp-2)' }}>
-                    <button type="button" className="btn btn-secondaire" onClick={() => changer(r.id, 'valide')}>
-                      Valider
-                    </button>
-                    <button type="button" className="btn btn-secondaire" onClick={() => changer(r.id, 'refuse')}>
-                      Refuser
-                    </button>
-                  </span>
-                )}
-              </div>
-            ))
+            <>
+              {aVenir.length > 0 && (
+                <section className="rdv-groupe">
+                  <h2 className="section-titre">À venir</h2>
+                  {aVenir.map(ligneRdv)}
+                </section>
+              )}
+              {passes.length > 0 && (
+                <section className="rdv-groupe">
+                  <h2 className="section-titre">Passés</h2>
+                  {passes.map(ligneRdv)}
+                </section>
+              )}
+            </>
           )}
         </div>
 
         <div className="bloc">
           <div className="bloc-titre">
-            Nouveau rendez-vous
+            Décisions en attente
             <button type="button" className="lien-bloc" onClick={ouvrirFormulaire}>Ouvrir le formulaire →</button>
           </div>
-          <div className="vide">
-            <CalendarDays size={40} />
-            <b>Pas de rendez-vous en préparation</b>
-            Les nouvelles demandes (famille) ou propositions (agence) apparaîtront ici, avec leurs actions de validation.
-          </div>
+          {enAttente.length === 0 ? (
+            <div className="vide">
+              <CalendarDays size={40} />
+              <b>Aucune décision en attente.</b>
+              Les demandes et propositions apparaîtront ici.
+            </div>
+          ) : (
+            <div className="vide">
+              <CalendarDays size={40} />
+              <b>{enAttente.length} décision{enAttente.length === 1 ? '' : 's'} en attente.</b>
+              {enAttente.slice(0, 3).map((r) => (
+                <div className="rdv-attente-ligne" key={r.id}>
+                  {nomPersonne(r.personneId)} · {dateAffichee(r)}
+                </div>
+              ))}
+              {enAttente.length > 3 && (
+                <div className="rdv-attente-ligne">Et {enAttente.length - 3} autre{enAttente.length - 3 === 1 ? '' : 's'}…</div>
+              )}
+              Utilisez « Valider » ou « Refuser » dans la liste.
+            </div>
+          )}
         </div>
       </div>
 

@@ -78,6 +78,15 @@
 .selecteur-colonnes-liste label{display:inline-flex;align-items:center;gap:var(--sp-1);font-size:var(--micro);color:var(--gris)}
 .grille-confort .ag-cell{line-height:1.5}
 
+/* Agenda : deux files lisibles, décisions en attente et statut des données. */
+.rdv-groupe{margin-bottom:var(--sp-5)}
+.rdv-groupe .section-titre{margin-top:var(--sp-2)}
+.rdv-attente-ligne{
+  padding:var(--sp-1) 0;border-bottom:1px solid var(--ligne);
+  font-size:var(--micro);line-height:1.5;color:var(--gris);
+}
+.rdv-attente-ligne:last-of-type{border-bottom:0}
+
 @media (prefers-reduced-motion:reduce){
   .toast,.etat-grille,.statut-donnees{transition:none}
 }
