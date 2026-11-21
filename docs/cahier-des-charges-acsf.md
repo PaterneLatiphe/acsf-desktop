@@ -136,7 +136,7 @@ continue de marcher sans réseau. C’est son point fort, et c’est le plus fra
 
 ### 7.1 Règles de rendez-vous
 
-Détaillées dans `REGLES-RDV.md` : décision côté client ou côté agence, APK client, validation directe
+Détaillées dans `REGLES-RDV.md` : décision côté client ou côté agence, PWA client, validation directe
 par l’administratrice.
 
 ### 7.2 Confidentialité
@@ -237,6 +237,7 @@ Règles d’or concernées : §7.1 (règles 1 et 2).
 - `docs/propositions-acsf.md` — idées validées / à faire plus tard / refusées.
 - `design/references/` — ressources design.
 - `REGLES-RDV.md`, `OFFRES.md`, `RAPPORTS.md` — règles et spécifications par module.
+- `docs/cahier-des-charges-pwa.md` — cahier des charges du PWA (client famille).
 
 ---
 
