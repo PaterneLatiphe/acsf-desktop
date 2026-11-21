@@ -134,29 +134,12 @@ continue de marcher sans réseau. C’est son point fort, et c’est le plus fra
 
 ## 7. Règles métier
 
-### 7.1 Règles d’or ACSF
-
-1. **On perd des dossiers, jamais des vies.** Si une action n’est pas sûre, on ne la fait pas : on
-   sauvegarde d’abord.
-2. **On ne teste pas sur les dossiers réels des familles.** On travaille sur une copie ; on valide, on
-   se dit « ok », après seulement on applique.
-3. **On n’invente pas le métier.** Un doute sur ce que l’agence veut → demande à l’association
-   (administratrice — 70 23 77 90).
-
-### 7.2 Règles du métier
-
-- **Authentification** : point unique à brancher quand elle sera disponible (note prise dans `utilisateur.ts`).
-- **Consentement éclairé** : données sensibles (santé, spiritualité, mineurs) ne sont enregistrées que sous consentement explicite ; mineurs → consentement parental, décision de l’administratrice.
-- **Validation métier** : décision de suivi (majeure, mineure, danger) n’est validée que par l’administratrice (fin d’accord avec les règles de rendez-vous).
-- **Présence à l’agence** : reconnu métier côté client ; validation directe par l’administrateur, tracée.
-- **Confirmation vérifiée** : action irréversible nécessite confirmation avant réalisation.
-
-### 7.3 Règles de rendez-vous
+### 7.1 Règles de rendez-vous
 
 Détaillées dans `REGLES-RDV.md` : décision côté client ou côté agence, APK client, validation directe
 par l’administratrice.
 
-### 7.4 Confidentialité
+### 7.2 Confidentialité
 
 Rien de sensible (santé, spiritualité, mineurs) ne doit apparaître sans autorisation ; le refus se
 fait côté serveur, pas seulement côté affichage.
