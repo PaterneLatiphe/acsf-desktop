@@ -1,244 +1,145 @@
-# Cahier des charges — ACSF Desktop
-
-> Version : 0.1.0
-> Statut : brouillon — pilote
-> Date : 2026-11-21
-> Pilote : ACSF-AFRIQUE SARL — Ouagadougou
-> Responsable métier : Nom fictif — administratrice — 70 23 77 90
-
----
-
-## 1. Préambule — cadre du document
-
-Ce cahier décrit ACSF Desktop : logiciel de suivi des personnes suivies par ACSF-AFRIQUE SARL.
-
-C’est la référence du projet : le « quoi » et le « pourquoi ». Si le code dévie de ce document, c’est
-lui qui tranche — le cahier est le point d’appui, pas l’inverse. Toute évolution de périmètre ou de
-décision validée passe par un journal d’apposition (annexe A).
-
-Historique des révisions :
-
-| Version | Date | Changement | Statut |
-|---|---|---|---|
-| 0.1.0 | 2026-11-21 | CDC rédigé dans le ton du pilote, référence d’appui pour le travail | Brouillon |
-
----
-
-## 2. Contexte et porteurs
-
-### 2.1 Mission
-
-ACSF Desktop est le logiciel de suivi des personnes suivies par ACSF-AFRIQUE SARL. Il sert à
-**connaître chaque personne suivie** — dossier, volets de suivi, rendez-vous, conseils — et à en faire
-une base de données fiable.
-
-### 2.2 Environnement
-
-- **Desktop** : PC Windows de l’agence, Electron + React + TypeScript, base SQLite via `sql.js`.
-- **Web / familles** : plateforme web (PWA) — le logiciel est **en ligne**, les familles utilisent un
-  lien web depuis leur téléphone.
-- **IA** : assistants intégrés via des providers externes (Groq, Gemini), failover local ; bascule
-  explicite uniquement.
-
-### 2.3 Posture produit
-
-Le logiciel est **fonctionnel en ligne et hors ligne** : la plateforme est en ligne, le logiciel
-continue de marcher sans réseau. C’est son point fort, et c’est le plus fragile à casser.
-
----
-
-## 3. Vision et objectifs
-
-### 3.1 Objectifs stratégiques
-
-1. Fiabiliser le suivi des personnes (dossier unique, sans perte).
-2. Protéger les données sensibles (santé, spiritualité, mineurs).
-3. Respecter une règle de **zéro dépense** : pas de service payant, abonnement, carte bancaire, ni
-   essai.
-4. Garantir le fonctionnement hors ligne.
-
-### 3.2 Objectifs fonctionnels et techniques
-
-- Cadrer le périmètre fonctionnel par modules livrés, avec jalons.
-- Accessibilité (états vides, statuts textuels, toasts, tri annoncé, résumés d’erreurs, formulaire
-  guidé, outils de grille).
-
----
-
-## 4. Périmètre fonctionnel
-
-### 4.1 In scope
-
-- Tableau de bord, personnes / dossier, agenda / rendez-vous, offres / prestations, rapports, volets,
-  exports.
-- Assistance IA (failover, providers externes, bascule explicite).
-- Plateforme web famille (PWA) en complément du desktop.
-
-### 4.2 Out of scope (proposition)
-
-- Gestion financière / comptable — hors périmètre actuel, à valider auprès de l’agence.
-
----
-
-## 5. Utilisateurs, rôles et flux
-
-### 5.1 Acteurs
-
-| Rôle | Acteur | Responsabilités |
-|---|---|---|
-| Administratrice | Nom fictif (ACSF-AFRIQUE) | Décision métier, validation des rendez-vous, validation des conseils ; point de contact support (70 23 77 90) |
-| Agent terrain | Référent terrain (voir §12) | Saisie des personnes, volets, rendez-vous ; périmètre assigné |
-| Famille | Utilisateur web (PWA) | Consultation du dossier via lien web |
-| Équipe technique | Développeurs / référents ACSF | Maintenance, évolutions, sauvegarde, reprise |
-
-### 5.2 Flux principaux
-
-- Agent → création / mise à jour du dossier personne → volets → rendez-vous / conseils.
-- Administratrice → validation des décisions (rendez-vous, conseils, offres).
-- Famille → consultation web, hors ligne tolérée (PWA).
-
----
-
-## 6. Fonctionnalités livrées par module
-
-### 6.1 Tableau de bord
-
-- Compteurs, prochains rendez-vous, contributions à revoir, activité récente.
-
-### 6.2 Personnes / dossier
-
-- Liste, création, recherche, dossier (fiche personne). Export `.xlsx` (liste / carnet / rapports).
-- Sauvegarde locale (`acsf-db.bin`, copie de secours).
-
-### 6.3 Agenda / rendez-vous
-
-- RDV : agence, sortie terrain, entretien. Statuts : `propose`, `demande`, `valide`, `refuse`, avec
-  origines (`source_volet`, `source_passage_id`) et décisions.
-- Fichiers associés, décisions en attente, files à venir / passées, retour explicite.
-
-### 6.4 Offres / prestations
-
-- Catalogue : champs, catégories, statuts, liste, configuration des prestations, gestion des offres.
-
-### 6.5 Rapports
-
-- Différence Tableau de bord / Rapports. Types de rapports, filtres, aperçu, export multi-types.
-- Export `.xlsx` validé uniquement s’il est réellement ouvert et contrôlé.
-
-### 6.6 Volets / carnet de suivi
-
-- Carnet de suivi (compétence en cours). Éducation livrée ; Santé / Social / Spiritualité / Historique
-  à compléter.
-
----
-
-## 7. Règles métier
-
-### 7.1 Règles de rendez-vous
-
-Détaillées dans `REGLES-RDV.md` : décision côté client ou côté agence, PWA client, validation directe
-par l’administratrice.
-
-### 7.2 Confidentialité
-
-Rien de sensible (santé, spiritualité, mineurs) ne doit apparaître sans autorisation ; le refus se
-fait côté serveur, pas seulement côté affichage.
-
-### 7.3 Règles métier des autres fonctionnalités (`OFFRES.md`, `RAPPORTS.md`)
-
-- **Offres / catalogue** : une offre est une prestation du catalogue — pas une proposition
-  personnalisée. Création, modification et bascules ACTIVE/INACTIVE réservées à l’agence (pas de
-  client). Statuts : **ACTIVE** (proposable) / **INACTIVE** (conservé dans le catalogue, retiré de
-  l’usage courant). Catalogue affiché : libellé, description, catégorie (Accompagnement, Formation,
-  Animation, Appui matériel, Autre), tarif en FCFA et statut. Tarif : nombre entier positif.
-- **Rapports** : outil de documentation formel, distinct du tableau de bord. Exportable `.xlsx`
-  daté, en-tête ACSF, auteur, filtres, mise en page A4 paysage. Types : Personnes suivies /
-  Rendez-vous / Contributions famille — affichés avec libellés métier, jamais clés techniques.
-  Read-only : le rapport ne modifie aucune donnée.
-
----
-
-## 8. Contraintes
-
-### 8.1 Exigences produit
-
-- **Zéro dépense** : pas de service payant, abonnement, carte bancaire, ni essai.
-- **Offline-first** : le logiciel doit fonctionner sans réseau (desktop, web/PWA, IA).
-- **Confidentialité** : données de santé et mineurs protégées.
-
-### 8.2 Exigences techniques / design
-
-- Electron / React / TypeScript / Vite ; SQLite via `sql.js` (WASM) ; migrations idempotentes.
-- Design system : tokens (`--nuit`, `--jaune`, `--fond`, `--feuille`, `--plume`, `--gris`, `--ligne`),
-  Inter via `@fontsource`, espacement 4/8/12/16/24/32, radii 8/12/16/999, typo 12px / 1,5, titres.
-- Accessibilité : phases livrées (états vides, statuts textuels, toasts, tri annoncé, résumés
-  d’erreurs, formulaire guidé, outils de grille).
-
----
-
-## 9. Jalons et versions
-
-### 9.1 Jalons
-
-- Jalons par compétence (socle, dossier, agenda, offres, rapports, volets…).
-- Version de schéma de la base : `schema_version`, migrations idempotentes.
-- Pilote agence : 15 décembre 2026.
-
-### 9.2 Versionnage du CDC
-
-- Version `0.x.y` pendant la phase pilote ; passage à `1.0.0` à la validation agence.
-- Incrément : +1 mineur = évolution de périmètre ; +1 patch = clarification sans changement de fond.
-- Version validée : figée — évolution uniquement par nouvelle version.
-
----
-
-## 10. Risques et limites
-
-- Données de santé potentiellement envoyées vers des tiers (IA : Groq/Gemini) — vigilance.
-- Logo ACSF à fournir avant livraison.
-- Fragilité du hors‑ligne (point fort / plus fragile).
-- Quotas / failover IA : pool local, cooldown, Retry-After.
-
----
-
-## 11. Critères d’acceptation / livrables
-
-- Modules fonctionnels livrés et vérifiés (`npm run verify`, `npm run build`).
-- Failover IA opérationnel (plugin local, tests, providers live).
-- Export `.xlsx` validé par lecture et contrôle.
-- Fonctionnement hors ligne validé.
-- Zéro dépense engagée.
-- Un agent terrain ne voit pas les personnes d’un autre périmètre (voir §12).
-
----
-
-## 12. Accès et périmètre par agent terrain
-
-Un agent terrain **peut accéder et modifier les données des personnes suivies qui lui sont
-assignées**.
-
-- Périmètre d’un agent terrain : personnes assignées (rattachement agent ; migrations
-  `agence_id` / `admin_id` sur `personnes`).
-- Accès attendu : lecture et modification du dossier, volets, rendez-vous et contributions
-  associés à ces personnes.
-- Le compte administratif (Nom fictif) conserve un accès global à l’agence.
-- Les agents ne voient pas les personnes relevant d’un autre périmètre.
-- Toute modification est tracée (export / journal).
-- Mise en œuvre du périmètre terrain à valider / compléter (filtrage des listes et des fiches).
-
-Règles d’or concernées : §7.1 (règles 1 et 2).
-
----
-
-## Annexe A — Documents associés
-
-- `docs/decisions-acsf.md` — journal des décisions (pourquoi).
-- `docs/avancement-acsf.md` — avancement (où en est le projet).
-- `docs/propositions-acsf.md` — idées validées / à faire plus tard / refusées.
-- `design/references/` — ressources design.
-- `REGLES-RDV.md`, `OFFRES.md`, `RAPPORTS.md` — règles et spécifications par module.
-- `docs/cahier-des-charges-pwa.md` — cahier des charges du PWA (client famille).
-
----
-
-*Ce CDC est un document de travail : versionné, daté, révisé via le journal des décisions.*
+﻿ACSF-AFRIQUE SARL
+CAHIER DES CHARGES
+ACSF Desktop, logiciel de suivi des personnes
+Information	Détail
+Version	0.2 (brouillon pour relecture)
+Date	21 novembre 2026
+Responsable métier	Administratrice de l’agence de Ouaga [À compléter : nom]
+Responsable technique	[À compléter : nom]
+Mise en service pilote	15 décembre 2026
+Diffusion	Usage interne, document confidentiel
+
+
+# 1. Contexte et objectifs
+## 1.1 Pourquoi ce logiciel
+ACSF-AFRIQUE accompagne des personnes et des familles : éducation, santé, situation sociale, vie spirituelle. Aujourd’hui, les informations sont dispersées. ACSF Desktop les réunit dans un dossier unique par personne, avec un carnet de suivi qui garde l’historique de chaque passage.
+## 2.2 Objectifs
+- Avoir un dossier unique par personne, sans perte d’information.
+- Suivre chaque personne dans le temps grâce à des carnets datés (une ligne par passage).
+- Protéger les données sensibles : santé, situation sociale, convictions spirituelles, mineurs.
+- Continuer à travailler quand il n’y a pas de réseau
+- Pouvoir sortir des documents propres, en Excel, prêts à imprimer sur A4.
+
+# 3. Environnement technique
+Élément	Choix actuel
+Poste agence	Logiciel Windows, application Electron avec React et TypeScript (Vite pour la compilation)
+Base de données	SQLite via sql.js, enregistrée dans le fichier acsf-db.bin, avec une copie de secours
+Grille de saisie	AG Grid Community (licence libre)
+Exports	ExcelJS pour les fichiers .xlsx
+Interface	Police Inter, icônes Lucide, couleurs bleu nuit et jaune de l’agence
+Version web pour les familles	Application web installable (PWA), consultation depuis un téléphone
+	
+
+Les outils de développement, l’hébergement du serveur et le pays où il se trouve ne sont pas décrits ici. [À compléter : hébergeur, pays, coût]
+# 4. Périmètre
+## 4.1 Ce qui est inclus
+- Tableau de bord : compteurs, prochains rendez-vous, contributions à revoir, activité récente.
+- Personnes : liste, recherche, création, dossier avec identité et volets de suivi.
+- Carnets de suivi : Éducation, Santé, Social, Spiritualité, plus un historique des modifications.
+- Agenda : rendez-vous à l’agence, sorties terrain, entretiens.
+- Offres et prestations : catalogue géré par l’agence.
+- Rapports et exports Excel.
+- Version web pour les familles, en consultation.
+
+# 5. Utilisateurs et rôles
+Rôle	Qui	Ce qu’il fait
+Administratrice	Responsable de l’agence de Ouaga	Décide, valide les rendez-vous et les conseils, voit toutes les personnes de l’agence, gère les habilitations
+Agent terrain	Référents sur le terrain	Saisit et modifie les dossiers des personnes qui lui sont assignées, et seulement celles-là
+Famille/Personnes	Parents ou proches	Consulte le dossier depuis le PWA, selon ce que l’agence autorise
+
+Les droits précis de chaque rôle sur chaque volet (lire, modifier, supprimer, exporter) doivent être écrits dans un tableau.. [À compléter : tableau des droits à valider avec l’admin]
+Circulation des informations
+- L’admin et l’agent crée ou met à jour le dossier, puis ajoute des passages dans les volets et prépare les rendez-vous.
+- L’admin valide les rendez-vous, les conseils et les offres.
+- La famille consulte le dossier depuis son téléphone.
+
+# 6. Fonctionnalités par module
+## 6.1 Tableau de bord
+Il montre les chiffres du moment : personnes suivies, parrainages en attente, rendez-vous de la semaine, contributions à revoir. Il affiche aussi les prochains rendez-vous et l’activité récente. Quand la base est vide, il propose de créer une première personne.
+## 6.2 Personnes et dossier
+La liste permet de chercher par nom, prénom, téléphone ou code. La fiche d’une personne contient le nom, le prénom, le sexe, la date de naissance, le téléphone, l’adresse ou le quartier, le programme, le statut et un code de filiation généré automatiquement. Le sexe reste vide tant qu’on ne le renseigne pas. Les dates s’affichent en jour/mois/année.
+## 6.3 Carnets de suivi
+Chaque volet fonctionne comme un carnet. Une ligne correspond à un passage : on ajoute une ligne à chaque visite ou entretien, on n’écrase pas l’ancienne. Chaque ligne porte la date, l’auteur et ses propres champs, plus une remarque et une prochaine échéance.
+- Saisie directe dans la grille, comme dans Excel, avec sauvegarde à la validation de chaque cellule.
+- Les plus récents s’affichent en haut.
+- Aucun texte coupé : les cellules s’agrandissent.
+- Chaque correction ou suppression est enregistrée dans le journal : qui, quand, ancienne et nouvelle valeur.
+- Une prochaine échéance crée un rendez-vous lié dans l’agenda. Si l’échéance est effacée ou si le passage est supprimé, le rendez-vous lié est supprimé.
+- L’onglet Synthèse résume chaque volet. L’onglet Historique est en lecture seule.
+
+## 6.4 Agenda et rendez-vous
+Types : agence, sortie terrain, entretien. Statuts : proposé, demandé, validé, refusé. Un rendez-vous garde son origine (le volet et le passage qui l’ont créé). Les décisions en attente sont visibles à part, avec les rendez-vous à venir et passés. Le détail des règles est dans REGLES-RDV.md.
+## 6.5 Offres et prestations
+Une offre est une prestation du catalogue, pas une proposition faite sur mesure à une personne. Elle a un libellé, une description, une catégorie (accompagnement, formation, animation, appui matériel, autre), un tarif en FCFA (nombre entier positif) et un statut actif ou inactif. Seule l’agence crée, modifie ou désactive une offre.
+## 6.6 Rapports et exports
+Les rapports servent à documenter le travail ; ils ne remplacent pas le tableau de bord et ne modifient aucune donnée. Types : personnes suivies, rendez-vous, contributions des familles. Chaque export Excel (.xlsx) porte l’en-tête de l’agence avec le logo, le titre, la date, l’auteur et les filtres utilisés. Les dates sont de vraies dates Excel, les téléphones sont au même format partout, et la mise en page tient sur une page A4 de large, avec les titres répétés sur chaque page.
+
+# 7. Règles métier
+- Un agent ne voit que les personnes qui lui sont assignées. L’administratrice voit toute l’agence.
+- Les informations sensibles (santé, spiritualité, education, social) ne s’affichent qu’aux personnes autorisées. Le refus se fait côté serveur, pas seulement à l’écran.
+- Les rendez-vous suivent les statuts du point 6.4 ; la validation finale revient à l’administratrice.
+- Aucune valeur n’est inventée par défaut : un champ non renseigné reste vide.
+- Toute modification de dossier est tracée.
+
+# 8. Fonctionnement hors ligne et synchronisation
+Le logiciel doit continuer à fonctionner sans réseau, et envoyer les modifications quand la connexion revient.
+- Les données sont d’abord enregistrées sur le poste, dans acsf-db.bin.
+- Chaque passage a un identifiant unique (UUID) pour éviter que deux postes créent le même numéro hors ligne.
+- Si deux postes modifient la même ligne, la règle actuelle est que la dernière modification l’emporte, et le journal garde les deux versions.
+- L’écran indique l’état : base locale, enregistrement en cours, enregistré, erreur.
+Reste à écrire : ce qui se passe quand la synchronisation échoue plusieurs jours, comment on résout un conflit à la main, et comment on teste le retour du réseau. [À compléter : scénarios de test hors ligne]
+
+# 9. Sécurité et données personnelles
+Le logiciel traite des données de santé, de situation sociale et de croyances
+## 9.1 Mesures prévues
+- Compte personnel pour chaque utilisateur, mot de passe solide, verrouillage après inactivité.
+- Droits par rôle et par volet.
+- Chiffrement du fichier de base de données
+- Exports tracés et limités selon le rôle, car c’est là que les fuites arrivent le plus souvent.
+- Journal d’audit conservé, non modifiable depuis l’application.
+- Sauvegardes chiffrées, gardées ailleurs que sur le poste principal.
+## 9.2 Cadre légal
+La protection des données personnelles au Burkina Faso relève de la CIL et de la loi n° 001-2021/AN. Les obligations exactes (déclaration, consentement, durée de conservation, droit d’accès et de suppression) doivent être vérifiées par un juriste avant la mise en service. [À compléter : avis juridique]
+## 9.3 Consentement
+Le consentement des personnes, et des parents pour les mineurs, doit être recueilli avant la saisie. [À compléter : modèle de formulaire de consentement, durée de conservation]
+
+# 10. Exigences de qualité
+- Accessibilité : messages d’état clairs, erreurs lisibles sous chaque champ, contrastes suffisants, usage au clavier.
+- Lisibilité : aucune information coupée à l’écran ni dans les exports.
+- Performance : ouverture d’un dossier et affichage d’une grille de plusieurs centaines de lignes sans attente gênante. Seuils à fixer.
+- Maintenance : fichiers courts, une seule source pour les colonnes de chaque volet, migrations de base numérotées et rejouables sans risque.
+
+# 11. Tests et critères de réception
+Le logiciel est accepté quand les points suivants sont vérifiés et notés dans un compte rendu signé.
+N°	Vérification	Qui valide
+1	L’application se compile et passe les contrôles automatiques (npm run verify et npm run build)	Équipe technique
+2	Création d’une personne, ajout, modification et suppression d’un passage dans les quatre volets	Agent et admin
+3	Un agent ne voit pas les personnes d’un autre agent	Admin
+4	Travail complet sans réseau, puis synchronisation au retour de la connexion	Équipe technique
+5	Chaque export Excel est ouvert dans Excel et contrôlé : en-tête, dates, rien de coupé, une page A4 de large	Admin
+6	Reprise depuis une sauvegarde : la base est restaurée sans perte	Équipe technique
+
+# 12. Planning
+Étape	Date visée	Remarque
+Carnets de suivi complets (4 volets)	[À compléter : date]	Colonnes à valider avec le terrain
+Droits par rôle et par agent	[À compléter : date]	Avant toute donnée réelle
+Chiffrement et sauvegardes	[À compléter : date]	Avant toute donnée réelle
+Tests hors ligne	[À compléter : date]	
+Formation des agents	[À compléter : date]	
+Mise en service pilote	15 décembre 2026	Date donnée par la direction
+
+# 13. Risques
+Risque	Réponse prévue
+Fuite de données de santé ou de mineurs	Droits par rôle, chiffrement, exports tracés, aucune donnée envoyée à l’IA externe
+Perte de la base sur un poste	Sauvegardes régulières, chiffrées, gardées sur un autre support
+Conflits de synchronisation	Identifiants uniques, journal des deux versions, procédure de résolution à écrire
+Services externes qui deviennent payants ou indisponibles	Bascule locale, pas de dépendance obligatoire
+Équipe qui arrive sans connaître le projet	Ce document, le README, le journal des décisions, passation par l’auteur du projet
+Logo ou ressources manquantes à la livraison	Les demander à l’agence dès maintenant
+
+# Annexe. Documents associés
+- docs/decisions-acsf.md : journal des décisions.
+- docs/avancement-acsf.md : où en est le projet.
+- docs/propositions-acsf.md : idées validées, repoussées ou refusées.
+- REGLES-RDV.md, OFFRES.md, RAPPORTS.md : règles détaillées par module.
+- design/references/ : ressources graphiques.
