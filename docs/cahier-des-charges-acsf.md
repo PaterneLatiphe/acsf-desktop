@@ -144,6 +144,18 @@ par l’administratrice.
 Rien de sensible (santé, spiritualité, mineurs) ne doit apparaître sans autorisation ; le refus se
 fait côté serveur, pas seulement côté affichage.
 
+### 7.3 Règles métier des autres fonctionnalités (`OFFRES.md`, `RAPPORTS.md`)
+
+- **Offres / catalogue** : une offre est une prestation du catalogue — pas une proposition
+  personnalisée. Création, modification et bascules ACTIVE/INACTIVE réservées à l’agence (pas de
+  client). Statuts : **ACTIVE** (proposable) / **INACTIVE** (conservé dans le catalogue, retiré de
+  l’usage courant). Catalogue affiché : libellé, description, catégorie (Accompagnement, Formation,
+  Animation, Appui matériel, Autre), tarif en FCFA et statut. Tarif : nombre entier positif.
+- **Rapports** : outil de documentation formel, distinct du tableau de bord. Exportable `.xlsx`
+  daté, en-tête ACSF, auteur, filtres, mise en page A4 paysage. Types : Personnes suivies /
+  Rendez-vous / Contributions famille — affichés avec libellés métier, jamais clés techniques.
+  Read-only : le rapport ne modifie aucune donnée.
+
 ---
 
 ## 8. Contraintes
