@@ -241,7 +241,6 @@ const Agenda: React.FC = () => {
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-3)', flexWrap: 'wrap' }}>
         <div>
           <h1 className="page">Agenda</h1>
-          <p className="sous-titre">Les rendez-vous : RDV agence, sorties terrain, entretiens</p>
         </div>
         <button type="button" className="btn btn-principal" style={{ marginLeft: 'auto' }} onClick={ouvrirFormulaire}>
           <UserRoundPlus size={18} /> Nouveau rendez-vous

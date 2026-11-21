@@ -202,6 +202,25 @@
 .dialog-modal p{color:var(--gris);margin-bottom:var(--sp-4)}
 .dialog-actions{display:flex;justify-content:flex-end;gap:var(--sp-3)}
 
+/* Premium additive : élévation douce au survol des cartes, transitions de surface. */
+.bloc,
+.kpi,
+.dialog-modal,
+.fiche-page {
+  transition: box-shadow 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
+}
+.bloc:hover,
+.kpi:hover,
+.dialog-modal:hover {
+  box-shadow: var(--ombre-2);
+}
+
+/* Premium additive : chiffres KPI en numériques tabulaires pour une lecture stable. */
+.kpi-chiffre {
+  font-variant-numeric: tabular-nums;
+}
+
+
 @media (max-width:820px){
   .grille-champs{grid-template-columns:repeat(2,minmax(0,1fr))}
   .formulaire-cadre{width:calc(100vw - var(--sp-4));max-height:94vh}

@@ -88,7 +88,6 @@ function App() {
         return (
           <div className="page-enter">
             <h1 className="page">{MENU.find((m) => m.cle === ecran)?.libelle}</h1>
-            <p className="sous-titre">ACSF-AFRIQUE — ACSF Desktop</p>
             <div className="vide">
               <IllustrationVide />
               <b>Bientôt</b>

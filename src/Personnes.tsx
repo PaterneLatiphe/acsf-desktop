@@ -120,7 +120,6 @@ const Personnes: React.FC<{ onChanger?: () => void }> = ({ onChanger }) => {
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-3)', flexWrap: 'wrap' }}>
         <div>
           <h1 className="page">Personnes</h1>
-          <p className="sous-titre">Base de données des personnes suivies par l'agence</p>
         </div>
         <div style={{ display: 'flex', gap: 'var(--sp-3)', marginLeft: 'auto', flexWrap: 'wrap' }}>
           <button type="button" className="btn btn-secondaire" onClick={() => exporterExcelPersonnes(resultats)} disabled={resultats.length === 0}>

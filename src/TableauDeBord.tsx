@@ -76,7 +76,6 @@ const TableauDeBord: React.FC<Props> = ({ onCreer, onNaviguer }) => {
   return (
     <div className="page-enter">
       <h1 className="page">Tableau de bord</h1>
-      <p className="sous-titre">Vue d'ensemble du suivi — agence de Ouaga</p>
 
       {erreur && (
         <div className="erreur" role="alert">

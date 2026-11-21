@@ -179,7 +179,6 @@ const Offres: React.FC = () => {
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-3)', flexWrap: 'wrap' }}>
         <div>
           <h1 className="page">Offres</h1>
-          <p className="sous-titre">Catalogue des prestations proposées par l’agence</p>
         </div>
         <button
           type="button"

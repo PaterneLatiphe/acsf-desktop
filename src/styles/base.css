@@ -88,7 +88,6 @@ svg.lucide{stroke-width:1.8}
 
 .content{flex:1;min-height:0;overflow:auto;padding:var(--pad-page);width:100%}
 h1.page{font-size:var(--titre-page);font-weight:800;letter-spacing:-.02em;color:var(--nuit);line-height:1.5}
-.sous-titre{font-size:12px;color:var(--gris-clair);margin-top:var(--sp-1)}
 .page-enter{animation:apparition .18s ease-out both}
 @keyframes apparition{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 

@@ -392,7 +392,6 @@ const Rapports: React.FC<RapportsProps> = ({ onNaviguer }) => {
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-3)', flexWrap: 'wrap' }}>
         <div>
           <h1 className="page">Rapports</h1>
-          <p className="sous-titre">Documents officiels de l’agence de Ouaga — prêts à imprimer ou à envoyer</p>
         </div>
         <div style={{ display: 'flex', gap: 'var(--sp-3)', marginLeft: 'auto', flexWrap: 'wrap' }}>
           {boutonExport(true)}
