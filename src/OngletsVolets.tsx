@@ -5,15 +5,6 @@
 
 import React, { useRef } from 'react';
 
-import {
-  LayoutDashboard,
-  BookOpen,
-  Heart,
-  Users,
-  Lock,
-  History,
-} from 'lucide-react';
-
 export type CleVolet =
   | 'synthese'
   | 'education'
@@ -21,15 +12,6 @@ export type CleVolet =
   | 'social'
   | 'spiritualite'
   | 'historique';
-
-const ICONES: Record<CleVolet, React.ReactNode> = {
-  synthese: <LayoutDashboard size={16} />,
-  education: <BookOpen size={16} />,
-  sante: <Heart size={16} />,
-  social: <Users size={16} />,
-  spiritualite: <Lock size={16} />,
-  historique: <History size={16} />,
-};
 
 export const VOLETS: { cle: CleVolet; libelle: string }[] = [
   { cle: 'synthese', libelle: 'Synthèse' },
@@ -101,7 +83,6 @@ export const OngletsVolets: React.FC<OngletsVoletsProps> = ({ voletActif, onChan
             onClick={() => onChangerVolet(v.cle)}
             onKeyDown={onKeyDown}
           >
-            {ICONES[v.cle]}
             <span>{v.libelle}</span>
             {avecBadge && <span className="volet-tab-badge" aria-hidden="true">{badge}</span>}
           </button>
