@@ -262,7 +262,11 @@ function ajusterLargeurs(colonnes: ColonneTableur[], largeurs: number[], titre: 
 }
 
 function lignesNecessaires(texte: string, largeur: number): number {
-  return Math.max(1, Math.ceil(texte.length / Math.max(8, largeur - 3)));
+  const caracteresParLigne = Math.max(8, largeur - 3);
+  return texte.split('\n').reduce(
+    (total: number, ligne: string) => total + Math.max(1, Math.ceil(ligne.length / caracteresParLigne)),
+    0
+  );
 }
 
 function lettreColonne(index: number): string {
@@ -445,7 +449,7 @@ export function ajouterFeuilleTableur(classeur: Workbook, options: OptionsTableu
       if (texte) nbLignes = Math.max(nbLignes, lignesNecessaires(texte, largeurs[c + 1]));
       ecrireCellule(row.getCell(c + 2), ligne[colonne.cle], colonne.type, index % 2 === 1);
     });
-    row.height = Math.min(120, Math.max(15, nbLignes * 14));
+    row.height = Math.min(409, Math.max(18, nbLignes * 15 + 6));
     row.getCell(1).border = BORDURE_FINE;
     row.getCell(1).alignment = { vertical: 'top', horizontal: 'center' };
     if (index % 2 === 1) row.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COULEURS.fond } };

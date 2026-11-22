@@ -39,7 +39,7 @@ function formaterDate(valeur: any): string {
   return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
 }
 
-// Aperçu d'une cellule : textarea tronqué sur la première ligne, tooltip complet (composant React)
+// Aperçu d'une cellule : le texte complet est affiché (retours à la ligne conservés).
 function CellApercu({ col, params }: { col: any; params: any }) {
   const valeur = params?.value;
   if (valeur === null || valeur === undefined || valeur === '') {
@@ -56,22 +56,17 @@ function CellApercu({ col, params }: { col: any; params: any }) {
   if (col?.type !== 'textarea') {
     return <>{texte}</>;
   }
-  const lignes = texte.split('\n');
-  const premier = lignes[0] || '';
-  const reste = lignes.length > 1 ? ' ⏎' : '';
-  const tronque = premier.length > 50 ? `${premier.slice(0, 50)}…` : premier;
   return (
     <span
       style={{
         display: 'block',
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
-        whiteSpace: 'pre-line',
+        whiteSpace: 'pre-wrap',
+        overflowWrap: 'anywhere',
         color: 'var(--plume)',
       }}
-      title={texte.length > 120 ? `${texte.slice(0, 120)}…` : texte}
+      title={texte}
     >
-      {`${tronque}${reste}`}
+      {texte}
     </span>
   );
 }
@@ -248,7 +243,7 @@ export const GrilleVolet: React.FC<GrilleVoletProps> = ({
     detacheRef.current?.();
   }, []);
 
-  // Hauteur de ligne calculée pour que le texte ne soit jamais coupé
+  // Hauteur de ligne calculée pour que le texte intégral reste visible, y compris les retours à la ligne.
   const getRowHeight = useCallback((params: any) => {
     const row = params.data || {};
     let maxLignes = 1;
@@ -256,8 +251,9 @@ export const GrilleVolet: React.FC<GrilleVoletProps> = ({
       if (col.type !== 'textarea') continue;
       const texte = row[col.cle];
       if (texte === null || texte === undefined || texte === '') continue;
-      const largeur = 240;
-      const caracteresParLigne = Math.max(12, Math.floor(largeur / 7.2));
+      const colonneGrid = params.api?.getColumn?.(col.cle);
+      const largeur = Math.max(220, colonneGrid?.getActualWidth?.() ?? 240);
+      const caracteresParLigne = Math.max(12, Math.floor((largeur - 16) / 7.2));
       const lignes = String(texte).split('\n').reduce(
         (total: number, ligne: string) => total + Math.max(1, Math.ceil(ligne.length / caracteresParLigne)),
         0
@@ -267,7 +263,7 @@ export const GrilleVolet: React.FC<GrilleVoletProps> = ({
     const confort = densite === 'confort';
     const hauteurLigne = confort ? 24 : 19;
     const marge = confort ? 16 : 0;
-    return Math.min(260 + marge, Math.max(38 + marge, maxLignes * hauteurLigne + 12 + marge));
+    return Math.min(600 + marge, Math.max(38 + marge, maxLignes * hauteurLigne + 16 + marge));
   }, [colonnes, densite]);
 
   return (
