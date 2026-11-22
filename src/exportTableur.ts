@@ -483,11 +483,38 @@ export function ajouterFeuilleTableur(classeur: Workbook, options: OptionsTableu
     for (let c = 1; c <= nbColonnes; c++) ws.getCell(pied, c).border = BORDURE_FINE;
   }
 
-  // Filtres sur la ligne des titres uniquement (pas sur le pied)
-  ws.autoFilter = {
-    from: { row: LIGNE_TITRES, column: 1 },
-    to: { row: sansDonnees ? LIGNE_TITRES : derniereLigne, column: nbColonnes },
-  };
+  // Vrai tableau Excel : plage structurée, bandes alternées et filtres intégrés.
+  // Le pied de total reste hors de la plage pour ne pas casser la table.
+  const derniereDonnee = LIGNE_TITRES + options.lignes.length;
+  if (!sansDonnees) {
+    const vus = new Map<string, number>();
+    const colonnesTable = colonnes.map((colonne, index) => {
+      const base = String(colonne.libelle || `Colonne ${index + 1}`).replace(/[\[\]:*?\/\\]/g, ' ').trim() || `Colonne ${index + 1}`;
+      const occ = (vus.get(base) ?? 0) + 1;
+      vus.set(base, occ);
+      return { name: occ === 1 ? base : `${base} (${occ})`, filterButton: true };
+    });
+    // Lire les valeurs déjà écrites pour ne pas écraser la mise en forme (dates, téléphones).
+    const lignesTable: unknown[][] = options.lignes.map((_ligne, indexLigne) => {
+      const numeroLigne = LIGNE_TITRES + 1 + indexLigne;
+      return colonnes.map((_colonne, indexColonne) => ws.getRow(numeroLigne).getCell(indexColonne + 1).value);
+    });
+    const table = ws.addTable({
+      name: `Table${classeur.worksheets.length}`,
+      ref: `${lettreColonne(1)}${LIGNE_TITRES}:${lettreColonne(nbColonnes)}${derniereDonnee}`,
+      headerRow: true,
+      totalsRow: false,
+      style: { theme: 'TableStyleMedium2', showRowStripes: true, showColumnStripes: false },
+      columns: colonnesTable,
+      rows: lignesTable,
+    });
+    table.commit();
+  } else {
+    ws.autoFilter = {
+      from: { row: LIGNE_TITRES, column: 1 },
+      to: { row: LIGNE_TITRES, column: nbColonnes },
+    };
+  }
 
   // Impression identique pour tous les onglets : A4, une page de large, titres répétés.
   const derniereColonne = lettreColonne(nbColonnes);
